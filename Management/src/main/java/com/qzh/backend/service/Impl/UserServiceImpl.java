@@ -101,7 +101,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public UserVO getUserDetailById(Long id) {
         User user = this.getById(id);
-        ThrowUtils.throwIf(user == null,ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(user == null,ErrorCode.NOT_FOUND_ERROR,"用户不存在");
         UserVO userVO = UserVO.toUserVO(user);
         // 查询该用户的角色关联关系
         List<UserRelatedRole> userRoleRelations = userRelatedRoleService.list(
@@ -162,7 +162,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Boolean updateUser(Long id, UserUpdateDTO updateDTO) {
         ThrowUtils.throwIf(updateDTO == null, ErrorCode.PARAMS_ERROR);
         User user = this.getById(id);
-        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR,"用户不存在");
         user.setUserName(updateDTO.getUserName());
         user.setPhone(updateDTO.getPhone());
         user.setStatus(UserStatus.getEnumByValue(updateDTO.getStatus()).getValue());
@@ -203,7 +203,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public Boolean resetPassword(Long id, String newPassword) {
         User user = this.getById(id);
-        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR);
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR,"用户不存在");
         // 密码校验在controller层
         String encryptPassword = getEncryptPassword(newPassword);
         user.setUserPassword(encryptPassword);
