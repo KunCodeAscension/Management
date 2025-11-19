@@ -21,6 +21,7 @@ import com.qzh.backend.service.UserService;
 import com.qzh.backend.utils.ThrowUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.DigestUtils;
 
 import java.util.*;
@@ -157,6 +158,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Boolean updateUser(Long id, UserUpdateDTO updateDTO) {
         ThrowUtils.throwIf(updateDTO == null, ErrorCode.PARAMS_ERROR);
         User user = this.getById(id);
@@ -164,7 +166,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserName(updateDTO.getUserName());
         user.setPhone(updateDTO.getPhone());
         user.setStatus(UserStatus.getEnumByValue(updateDTO.getStatus()).getValue());
-        return this.updateById(user);
+        // 4. 处理角色关联（先删后加，覆盖式更新）
+        List<Long> newRoleIds = updateDTO.getRoleIds();
+        boolean remove;
+        if (!CollectionUtils.isEmpty(newRoleIds)) {
+            // 4.1 删除该用户原有所有角色关联（sys_user_role表）
+            remove = userRelatedRoleService.remove(
+                    new LambdaQueryWrapper<UserRelatedRole>()
+                            .eq(UserRelatedRole::getUserId, id)
+            );
+
+            // 4.2 批量构建新的角色关联实体
+            List<UserRelatedRole> userRoleList = newRoleIds.stream()
+                    .map(roleId -> {
+                        UserRelatedRole userRelatedRole = new UserRelatedRole();
+                        userRelatedRole.setUserId(id);
+                        userRelatedRole.setRoleId(roleId);
+                        // TODO 创建人ID
+                        // userRelatedRole.setCreateBy(getCurrentUserId());
+                        return userRelatedRole;
+                    })
+                    .collect(Collectors.toList());
+            boolean saveBatch = userRelatedRoleService.saveBatch(userRoleList);
+            remove = saveBatch && remove;
+        } else {
+            // 若传入角色ID列表为空，删除该用户所有角色关联（可选：根据业务需求决定是否保留）
+            remove = userRelatedRoleService.remove(
+                    new LambdaQueryWrapper<UserRelatedRole>()
+                            .eq(UserRelatedRole::getUserId, id)
+            );
+        }
+        boolean updateById = this.updateById(user);
+        return updateById && remove;
     }
 
     @Override

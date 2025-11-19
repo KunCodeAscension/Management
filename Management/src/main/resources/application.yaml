@@ -26,19 +26,16 @@ springdoc:
   default-flat-param-object: true
   # 启用swaggerUI
   swagger-ui:
-    #自定义swagger前端请求路径，输入http：127.0.0.1:8080/swagger-ui.html会自动重定向到swagger页面
+    #自定义swagger前端请求路径，输入http://127.0.0.1:8080/api/system/swagger-ui.html会自动重定向到swagger页面
     path: /swagger-ui.html
     enabled: true
-    #    tags-sorter: alpha # 标签的排序方式 alpha:按照子母顺序排序（@ApiSupport注解排序不生效，因此需要设置）
-    #    operations-sorter: alpha # 接口的排序方式 alpha:按照子母顺序排序（@ApiOperationSupport注解排序生效，因此这里不作设置）
-    operations-sorter: order # 设置规则为order，该规则会使用Knife4j的增强排序扩展规则`x-order`
-  # 启用文档，默认开启
+    operations-sorter: order
   api-docs:
-    path: /v3/api-docs    #swagger后端请求地址
+    path: /v3/api-docs
     enabled: true
 # knife4j相关配置 可以不用改
 knife4j:
-  enable: true    #开启knife4j，无需添加@EnableKnife4j注解
+  enable: true
   setting:
     language: ZH_CN   # 中文:ZH_CN 英文:EN
     enable-swagger-models: true

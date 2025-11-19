@@ -4,6 +4,7 @@ import lombok.Data;
 import javax.validation.constraints.NotNull;
 import java.io.Serial;
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * 更新用户请求参数
@@ -21,4 +22,6 @@ public class UserUpdateDTO implements Serializable {
 
     @NotNull(message = "状态不能为空")
     private Integer status;
+
+    private List<Long> roleIds;
 }
