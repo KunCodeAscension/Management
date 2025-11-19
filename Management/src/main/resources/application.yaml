@@ -1,20 +1,49 @@
 server:
   port: 8000
   servlet:
-    context-path: /api
+    context-path: /api/system
 
 spring:
   application:
     name: Management
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/management
+    url: jdbc:mysql://localhost:3306/managerment
     username: root
-    password: 234182
+    password: 123
 
 mybatis-plus:
   configuration:
     # 驼峰配置
-    map-underscore-to-camel-case: true
+    map-underscore-to-camel-case: false
     # 开发环境打印 Sql 日志
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+# Knife4j配置
+# springdoc-openapi配置
+springdoc:
+  # get请求多参数时不需要添加额外的@ParameterObject和@Parameter注解
+  default-flat-param-object: true
+  # 启用swaggerUI
+  swagger-ui:
+    #自定义swagger前端请求路径，输入http：127.0.0.1:8080/swagger-ui.html会自动重定向到swagger页面
+    path: /swagger-ui.html
+    enabled: true
+    #    tags-sorter: alpha # 标签的排序方式 alpha:按照子母顺序排序（@ApiSupport注解排序不生效，因此需要设置）
+    #    operations-sorter: alpha # 接口的排序方式 alpha:按照子母顺序排序（@ApiOperationSupport注解排序生效，因此这里不作设置）
+    operations-sorter: order # 设置规则为order，该规则会使用Knife4j的增强排序扩展规则`x-order`
+  # 启用文档，默认开启
+  api-docs:
+    path: /v3/api-docs    #swagger后端请求地址
+    enabled: true
+# knife4j相关配置 可以不用改
+knife4j:
+  enable: true    #开启knife4j，无需添加@EnableKnife4j注解
+  setting:
+    language: ZH_CN   # 中文:ZH_CN 英文:EN
+    enable-swagger-models: true
+    enable-dynamic-parameter: false
+    enable-footer-custom: true
+    enable-footer: true
+    enable-document-manage: true
+
