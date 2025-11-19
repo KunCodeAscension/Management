@@ -1,0 +1,20 @@
+server:
+  port: 8000
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: Management
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/management
+    username: root
+    password: 234182
+
+mybatis-plus:
+  configuration:
+    # 驼峰配置
+    map-underscore-to-camel-case: true
+    # 开发环境打印 Sql 日志
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
