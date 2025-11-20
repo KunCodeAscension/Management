@@ -27,6 +27,8 @@ public class User implements Serializable {
 
     private Integer status;
 
+    private String email;
+
     private Date createTime;
 
     private Date updateTime;

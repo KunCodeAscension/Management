@@ -22,6 +22,9 @@ public class UserCreateDTO implements Serializable {
     @Size(min = 6, max = 20, message = "用户密码长度必须在6-20位之间")
     private String userPassword;
 
+    @NotNull(message = "用户邮箱不能为空")
+    private String email;
+
     @NotNull(message = "用户姓名不能为空")
     private String userName;
 
