@@ -3,10 +3,7 @@ package com.qzh.backend.model.vo;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
-import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableId;
-import com.baomidou.mybatisplus.annotation.TableName;
 import com.qzh.backend.model.entity.Permission;
 import com.qzh.backend.model.entity.Role;
 import lombok.Data;
@@ -17,10 +14,8 @@ import java.util.Date;
 import java.util.List;
 
 @Data
-@TableName("sys_role")
 public class RoleVO implements Serializable {
 
-    @TableId(type = IdType.ASSIGN_ID)
     private Long id;
 
 

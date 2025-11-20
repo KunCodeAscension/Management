@@ -1,6 +1,7 @@
 package com.qzh.backend.model.dto.role;
 
 import cn.hutool.core.util.ObjUtil;
+import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.qzh.backend.common.PageRequest;
 import com.qzh.backend.model.entity.Role;
@@ -33,10 +34,13 @@ public class RoleQueryDTO extends PageRequest implements Serializable {
         String roleName = roleQueryDTO.getRoleName();
         String description = roleQueryDTO.getDescription();
         Date startTime = roleQueryDTO.getStartTime();
+        String sortField = roleQueryDTO.getSortField();
+        String sortOrder = roleQueryDTO.getSortOrder();
         Date endTime = roleQueryDTO.getEndTime();
         queryWrapper.like(ObjUtil.isNotNull(roleName),"roleName",roleName);
         queryWrapper.like(ObjUtil.isNotNull(description),"description",description);
         queryWrapper.ge(ObjUtil.isNotEmpty(startTime), "createTime", startTime);
+        queryWrapper.orderBy(StrUtil.isNotEmpty(sortField), sortOrder.equals("ascend"), sortField);
         queryWrapper.lt(ObjUtil.isNotEmpty(endTime), "createTime", endTime);
         return queryWrapper;
     }

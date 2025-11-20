@@ -168,10 +168,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setStatus(UserStatus.getEnumByValue(updateDTO.getStatus()).getValue());
         // 4. 处理角色关联（先删后加，覆盖式更新）
         List<Long> newRoleIds = updateDTO.getRoleIds();
-        boolean remove;
         if (!CollectionUtils.isEmpty(newRoleIds)) {
             // 4.1 删除该用户原有所有角色关联（sys_user_role表）
-            remove = userRelatedRoleService.remove(
+            userRelatedRoleService.remove(
                     new LambdaQueryWrapper<UserRelatedRole>()
                             .eq(UserRelatedRole::getUserId, id)
             );
@@ -187,17 +186,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                         return userRelatedRole;
                     })
                     .collect(Collectors.toList());
-            boolean saveBatch = userRelatedRoleService.saveBatch(userRoleList);
-            remove = saveBatch && remove;
+            userRelatedRoleService.saveBatch(userRoleList);
         } else {
             // 若传入角色ID列表为空，删除该用户所有角色关联（可选：根据业务需求决定是否保留）
-            remove = userRelatedRoleService.remove(
+            userRelatedRoleService.remove(
                     new LambdaQueryWrapper<UserRelatedRole>()
                             .eq(UserRelatedRole::getUserId, id)
             );
         }
-        boolean updateById = this.updateById(user);
-        return updateById && remove;
+        return this.updateById(user);
     }
 
     @Override

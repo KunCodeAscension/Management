@@ -148,7 +148,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
         ThrowUtils.throwIf(createDTO == null, ErrorCode.PARAMS_ERROR);
         boolean b = this.count(new LambdaQueryWrapper<Role>()
                 .eq(Role::getRoleName, createDTO.getRoleName())) > 0;
-        ThrowUtils.throwIf(!b,ErrorCode.PARAMS_ERROR,"该接口已经存在");
+        ThrowUtils.throwIf(b,ErrorCode.PARAMS_ERROR,"该角色已存在");
         Role role = new Role();
         role.setRoleName(createDTO.getRoleName());
         role.setDescription(createDTO.getDescription());

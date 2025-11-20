@@ -3,7 +3,6 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
 import com.qzh.backend.model.entity.User;
 import lombok.Data;
-import org.springframework.beans.BeanUtils;
 
 import java.io.Serial;
 import java.io.Serializable;
@@ -12,6 +11,7 @@ import java.util.List;
 
 @Data
 public class UserVO implements Serializable {
+
     @Serial
     private static final long serialVersionUID = 1L;
 
