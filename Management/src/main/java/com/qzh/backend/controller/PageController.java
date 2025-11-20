@@ -17,7 +17,7 @@ import javax.validation.Valid;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/system/page")
+@RequestMapping("page")
 @RequiredArgsConstructor
 public class PageController {
 
@@ -30,15 +30,6 @@ public class PageController {
     public BaseResponse<Page<PageVO>> getPageList(PageQueryDTO dto) {
         Page<PageVO> pagePage = pageService.getPageList(dto);
         return ResultUtils.success(pagePage);
-    }
-
-    /**
-     * 获取树形结构的页面列表
-     */
-    @GetMapping("/tree")
-    public BaseResponse<List<PageVO>> getPageTree(@RequestParam(required = false) Long parentId) {
-        List<PageVO> pageTree = pageService.getPageTree(parentId);
-        return ResultUtils.success(pageTree);
     }
 
     /**
@@ -79,6 +70,14 @@ public class PageController {
         Boolean result = pageService.deletePage(id);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "页面删除出错");
         return ResultUtils.success(null);
+    }
+
+    /**
+     *
+     */
+    @GetMapping("all")
+    public BaseResponse<List<PageVO>> getAllPage() {
+        return ResultUtils.success(pageService.getAllPageWithPermissions());
     }
 }
 
