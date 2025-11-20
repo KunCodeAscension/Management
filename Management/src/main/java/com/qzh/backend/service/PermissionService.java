@@ -31,4 +31,9 @@ public interface PermissionService extends IService<Permission> {
      * 删除权限
      */
     Boolean deletePermission(Long id);
+
+    /**
+     * 根据权限ID获取权限详情VO
+     */
+    PermissionVO getPermissionDetailById(Long id);
 }

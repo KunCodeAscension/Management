@@ -24,9 +24,6 @@ public class PermissionController {
 
     /**
      * 获取权限列表
-     * 接口地址: /api/system/permission/list
-     * 请求方法: GET
-     * 权限要求: 拥有 "权限查询" 权限
      */
     @GetMapping("/list")
     public BaseResponse<Page<PermissionVO>> getPermissionList(PermissionQueryDto dto) {
@@ -36,9 +33,6 @@ public class PermissionController {
 
     /**
      * 添加权限
-     * 接口地址: /api/system/permission
-     * 请求方法: POST
-     * 权限要求: 拥有 "权限分配" 权限
      */
     @PostMapping
     public BaseResponse<Long> createPermission(@Valid @RequestBody PermissionCreateDTO dto) {
@@ -49,9 +43,6 @@ public class PermissionController {
 
     /**
      * 编辑权限
-     * 接口地址: /api/system/permission/{id}
-     * 请求方法: PUT
-     * 权限要求: 拥有 "权限编辑" 权限
      */
     @PutMapping("/{id}")
     public BaseResponse<Void> updatePermission(@PathVariable Long id, @Valid @RequestBody PermissionUpdateDTO dto) {
@@ -62,15 +53,18 @@ public class PermissionController {
 
     /**
      * 删除权限
-     * 接口地址: /api/system/permission/{id}
-     * 请求方法: DELETE
-     * 权限要求: 拥有 "权限删除" 权限
      */
     @DeleteMapping("/{id}")
     public BaseResponse<Void> deletePermission(@PathVariable Long id) {
         Boolean result = permissionService.deletePermission(id);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "权限删除出错");
         return ResultUtils.success(null);
+    }
+
+    @GetMapping("/{id}")
+    public BaseResponse<PermissionVO> getPermissionDetail(@PathVariable Long id) {
+        PermissionVO permissionVO = permissionService.getPermissionDetailById(id);
+        return ResultUtils.success(permissionVO);
     }
 }
 

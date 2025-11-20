@@ -9,16 +9,30 @@ import com.qzh.backend.mapper.PermissionMapper;
 import com.qzh.backend.model.dto.permission.PermissionCreateDTO;
 import com.qzh.backend.model.dto.permission.PermissionQueryDto;
 import com.qzh.backend.model.dto.permission.PermissionUpdateDTO;
+import com.qzh.backend.model.entity.PageInfo;
+import com.qzh.backend.model.entity.PageRelatedPermission;
 import com.qzh.backend.model.entity.Permission;
 import com.qzh.backend.model.vo.PermissionVO;
+import com.qzh.backend.service.PageRelatedPermissionService;
+import com.qzh.backend.service.PageService;
 import com.qzh.backend.service.PermissionService;
 import com.qzh.backend.utils.ThrowUtils;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permission> implements PermissionService {
+
+    private final PageRelatedPermissionService pageRelatedPermissionService;
+
+    private final PageService pageService;
 
     @Override
     public Page<PermissionVO> getPermissionList(PermissionQueryDto dto) {
@@ -26,16 +40,66 @@ public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permiss
         int current = dto.getCurrent();
         int size = dto.getSize();
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
+        // 查询权限列表并转换为 PermissionVO
         Page<Permission> permissionPage = this.page(new Page<>(current, size), PermissionQueryDto.getQueryWrapper(dto));
         List<Permission> permissionList = permissionPage.getRecords();
         Page<PermissionVO> permissionVOPage = new Page<>(current, size, permissionPage.getTotal());
-        // 查询数据为空直接返回
+
         if (CollectionUtils.isEmpty(permissionList)) {
             permissionVOPage.setRecords(List.of());
             return permissionVOPage;
         }
-        // 转为 VOList
         List<PermissionVO> permissionVOList = PermissionVO.toPermissionVOList(permissionList);
+        // 批量查询权限-页面关联关系，填充 pages 字段
+        // 提取当前页所有权限ID
+        List<Long> permissionIds = permissionList.stream()
+                .map(Permission::getId)
+                .collect(Collectors.toList());
+
+        //批量查询权限-页面关联表（sys_page_related_permission）
+        List<PageRelatedPermission> permissionPageRelations = pageRelatedPermissionService.list(
+                new LambdaQueryWrapper<PageRelatedPermission>()
+                        .in(PageRelatedPermission::getPermissionId, permissionIds)
+        );
+
+        if (!CollectionUtils.isEmpty(permissionPageRelations)) {
+            //提取所有页面ID（去重），批量查询页面详情
+            List<Long> pageIds = permissionPageRelations.stream()
+                    .map(PageRelatedPermission::getPageId)
+                    .distinct()
+                    .collect(Collectors.toList());
+
+            // 批量查询页面完整实体（PageInfo）
+            List<PageInfo> pageList = pageService.list(
+                    new LambdaQueryWrapper<PageInfo>()
+                            .in(PageInfo::getId, pageIds)
+            );
+
+            //构建 页面ID -> 页面实体 的映射（优化匹配效率）
+            Map<Long, PageInfo> pageIdToPageMap = pageList.stream()
+                    .collect(Collectors.toMap(
+                            PageInfo::getId,
+                            page -> page,
+                            (oldVal, newVal) -> oldVal // 避免页面ID重复
+                    ));
+
+            // 构建 权限ID -> 页面实体列表 的映射
+            Map<Long, List<PageInfo>> permissionIdToPagesMap = permissionPageRelations.stream()
+                    .collect(Collectors.groupingBy(
+                            PageRelatedPermission::getPermissionId, // 按权限ID分组
+                            Collectors.mapping(
+                                    relation -> pageIdToPageMap.get(relation.getPageId()), // 转换为页面实体
+                                    Collectors.filtering(Objects::nonNull, Collectors.toList()) // 过滤无效页面
+                            )
+                    ));
+            permissionVOList.forEach(permissionVO -> {
+                List<PageInfo> pages = permissionIdToPagesMap.getOrDefault(permissionVO.getId(), Collections.emptyList());
+                permissionVO.setPages(pages);
+            });
+        } else {
+            // 无页面关联时，设置空列表（避免 NPE）
+            permissionVOList.forEach(vo -> vo.setPages(Collections.emptyList()));
+        }
         permissionVOPage.setRecords(permissionVOList);
         return permissionVOPage;
     }
@@ -82,5 +146,45 @@ public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permiss
         Permission permission = this.getById(id);
         ThrowUtils.throwIf(permission == null, ErrorCode.NOT_FOUND_ERROR, "权限不存在");
         return this.removeById(id);
+    }
+
+    @Override
+    public PermissionVO getPermissionDetailById(Long id) {
+        // 参数校验
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR, "权限ID不能为空");
+        // 查询权限基础信息
+        Permission permission = this.getById(id);
+        ThrowUtils.throwIf(permission == null, ErrorCode.NOT_FOUND_ERROR, "权限不存在");
+        // 转换为 PermissionVO（基础信息）
+        PermissionVO permissionVO = PermissionVO.toPermissionVO(permission);
+        // 查询该权限关联的页面列表（复用 getPermissionList 的关联逻辑）
+        // 查询权限-页面关联关系
+        List<PageRelatedPermission> permissionPageRelations = pageRelatedPermissionService.list(
+                new LambdaQueryWrapper<PageRelatedPermission>()
+                        .eq(PageRelatedPermission::getPermissionId, id) // 单个权限ID精准查询
+        );
+        // 处理页面数据并注入 PermissionVO
+        if (!CollectionUtils.isEmpty(permissionPageRelations)) {
+            // 提取页面ID
+            List<Long> pageIds = permissionPageRelations.stream()
+                    .map(PageRelatedPermission::getPageId)
+                    .distinct()
+                    .collect(Collectors.toList());
+            // 批量查询页面详情
+            List<PageInfo> pageList = pageService.list(
+                    new LambdaQueryWrapper<PageInfo>()
+                            .in(PageInfo::getId, pageIds)
+            );
+            // 过滤无效页面（避免关联已删除的页面）
+            List<PageInfo> validPageList = pageList.stream()
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
+            // 给 PermissionVO 填充 pages 字段
+            permissionVO.setPages(validPageList);
+        } else {
+            // 无关联页面时，设置空列表（避免 NPE）
+            permissionVO.setPages(Collections.emptyList());
+        }
+        return permissionVO;
     }
 }

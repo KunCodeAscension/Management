@@ -2,6 +2,7 @@ package com.qzh.backend.model.vo;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
+import com.qzh.backend.model.entity.PageInfo;
 import com.qzh.backend.model.entity.Permission;
 import lombok.Data;
 
@@ -27,6 +28,8 @@ public class PermissionVO implements Serializable {
     private Date updateTime;
 
     private Long createBy;
+
+    private List<PageInfo> pages;
 
     public static PermissionVO toPermissionVO(Permission permission) {
         if (permission == null) {
