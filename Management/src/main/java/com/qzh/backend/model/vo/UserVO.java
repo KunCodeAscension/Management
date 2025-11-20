@@ -1,6 +1,7 @@
 package com.qzh.backend.model.vo;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollectionUtil;
+import com.qzh.backend.model.entity.Role;
 import com.qzh.backend.model.entity.User;
 import lombok.Data;
 
@@ -25,7 +26,7 @@ public class UserVO implements Serializable {
 
     private String email;
 
-    private List<String> roleNames;
+    private List<Role> roles;
 
     private Date createTime;
 

@@ -35,17 +35,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     private final RoleService roleService;
 
-    @Override
     public Page<UserVO> getUserPage(UserQueryDTO queryDTO) {
         ThrowUtils.throwIf(queryDTO == null, ErrorCode.PARAMS_ERROR);
         int current = queryDTO.getCurrent();
         int size = queryDTO.getSize();
         ThrowUtils.throwIf(size > 20, ErrorCode.PARAMS_ERROR);
-        // 查询 User列表 并且把User 转为 UserVO
+        // 查询用户列表并转换为 UserVO
         Page<User> page = this.page(new Page<>(current, size), UserQueryDTO.getQueryWrapper(queryDTO));
         Page<UserVO> userVOPage = new Page<>(current, size, page.getTotal());
         List<UserVO> userVOList = UserVO.toUserVOList(page.getRecords());
-        // 查询UserVO 下关联的 RoleName
+        // 查询用户关联的完整角色信息（替换原角色名称列表）
         if (!CollectionUtils.isEmpty(userVOList)) {
             // 提取当前页所有用户ID
             List<Long> userIds = userVOList.stream()
@@ -57,41 +56,41 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                             .in(UserRelatedRole::getUserId, userIds)
             );
             if (!CollectionUtils.isEmpty(userRoleRelations)) {
-                // 提取所有角色ID，批量查询角色信息 distinct去重
+                // 提取所有角色ID（去重），批量查询完整角色信息
                 List<Long> roleIds = userRoleRelations.stream()
                         .map(UserRelatedRole::getRoleId)
                         .distinct()
                         .collect(Collectors.toList());
 
-                // 构建 角色ID -> 角色名称 的映射
-                Map<Long, String> roleIdToNameMap = roleService.list(
-                                new LambdaQueryWrapper<Role>()
-                                        .in(Role::getId, roleIds)
-                        ).stream()
+                // 批量查询角色完整实体
+                List<Role> roleList = roleService.list(
+                        new LambdaQueryWrapper<Role>()
+                                .in(Role::getId, roleIds)
+                );
+                // 构建 角色ID -> 角色实体 的映射（优化匹配效率）
+                Map<Long, Role> roleIdToRoleMap = roleList.stream()
                         .collect(Collectors.toMap(
                                 Role::getId,
-                                Role::getRoleName,
-                                (oldVal, newVal) -> oldVal
+                                role -> role,
+                                (oldVal, newVal) -> oldVal // 避免角色ID重复（理论上不会）
                         ));
-
-                // 构建 用户ID -> 角色名称列表 的映射
-                Map<Long, List<String>> userIdToRoleNamesMap = userRoleRelations.stream()
+                // 构建 用户ID -> 角色实体列表 的映射
+                Map<Long, List<Role>> userIdToRolesMap = userRoleRelations.stream()
                         .collect(Collectors.groupingBy(
                                 UserRelatedRole::getUserId, // 按用户ID分组
                                 Collectors.mapping(
-                                        relation -> roleIdToNameMap.get(relation.getRoleId()), // 转换为角色名称
+                                        relation -> roleIdToRoleMap.get(relation.getRoleId()), // 转换为完整角色实体
                                         Collectors.filtering(Objects::nonNull, Collectors.toList()) // 过滤无效角色
                                 )
                         ));
-
-                // 给每个UserVO设置角色名称列表
+                // 给每个 UserVO 设置完整角色列表
                 userVOList.forEach(userVO -> {
-                    List<String> roleNames = userIdToRoleNamesMap.getOrDefault(userVO.getId(), Collections.emptyList());
-                    userVO.setRoleNames(roleNames);
+                    List<Role> roles = userIdToRolesMap.getOrDefault(userVO.getId(), Collections.emptyList());
+                    userVO.setRoles(roles);
                 });
             } else {
                 // 无角色关联，设置空列表
-                userVOList.forEach(vo -> vo.setRoleNames(Collections.emptyList()));
+                userVOList.forEach(vo -> vo.setRoles(Collections.emptyList()));
             }
         }
         userVOPage.setRecords(userVOList);
@@ -100,39 +99,39 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     public UserVO getUserDetailById(Long id) {
+        ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR); // 补充参数校验，与列表接口一致
         User user = this.getById(id);
-        ThrowUtils.throwIf(user == null,ErrorCode.NOT_FOUND_ERROR,"用户不存在");
+        ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         UserVO userVO = UserVO.toUserVO(user);
+
         // 查询该用户的角色关联关系
         List<UserRelatedRole> userRoleRelations = userRelatedRoleService.list(
                 new LambdaQueryWrapper<UserRelatedRole>()
                         .eq(UserRelatedRole::getUserId, id)
         );
-        // 填充角色名称列表
+
+        // 填充完整角色列表（替换原角色名称列表）
         if (!CollectionUtils.isEmpty(userRoleRelations)) {
-            // 提取角色ID列表
+            // 提取角色ID列表（去重）
             List<Long> roleIds = userRoleRelations.stream()
                     .map(UserRelatedRole::getRoleId)
                     .distinct()
                     .collect(Collectors.toList());
-
-            // 批量查询角色信息，构建 角色ID->角色名称 映射
-            Map<Long, String> roleIdToNameMap = roleService.list(
-                            new LambdaQueryWrapper<Role>()
-                                    .in(Role::getId, roleIds)
-                    ).stream()
-                    .collect(Collectors.toMap(
-                            Role::getId,
-                            Role::getRoleName,
-                            (oldVal, newVal) -> oldVal
-                    ));
-            List<String> roleNames = roleIds.stream()
-                    .map(roleIdToNameMap::get)
+            // 批量查询完整角色实体
+            List<Role> roleList = roleService.list(
+                    new LambdaQueryWrapper<Role>()
+                            .in(Role::getId, roleIds)
+            );
+            // 过滤无效角色（避免关联已删除的角色）
+            List<Role> validRoles = roleList.stream()
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-            userVO.setRoleNames(roleNames);
+
+            // 给 UserVO 设置完整角色列表（替换原 setRoleNames）
+            userVO.setRoles(validRoles);
         } else {
-            userVO.setRoleNames(Collections.emptyList());
+            // 无角色关联，设置空列表
+            userVO.setRoles(Collections.emptyList());
         }
         return userVO;
     }
