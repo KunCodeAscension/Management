@@ -73,7 +73,7 @@ public class PageController {
     }
 
     /**
-     *
+     * 返回所有页面数据
      */
     @GetMapping("all")
     public BaseResponse<List<PageVO>> getAllPage() {

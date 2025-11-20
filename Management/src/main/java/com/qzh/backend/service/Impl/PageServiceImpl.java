@@ -140,7 +140,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
                 .eq(PageInfo::getPath,createDTO.getPath())
                 .eq(PageInfo::getParentId,createDTO.getParentId())
         ) > 0;
-        ThrowUtils.throwIf(!b,ErrorCode.PARAMS_ERROR,"页面已存在");
+        ThrowUtils.throwIf(b,ErrorCode.PARAMS_ERROR,"页面已存在");
         PageInfo page = new PageInfo();
         page.setParentId(createDTO.getParentId());
         page.setName(createDTO.getName());
@@ -170,7 +170,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
                 .eq(PageInfo::getPath,updateDTO.getPath())
                 .eq(PageInfo::getParentId,updateDTO.getParentId())
         ) > 0;
-        ThrowUtils.throwIf(!b,ErrorCode.PARAMS_ERROR,"页面已存在");
+        ThrowUtils.throwIf(b,ErrorCode.PARAMS_ERROR,"页面已存在");
         page.setParentId(updateDTO.getParentId());
         page.setName(updateDTO.getName());
         page.setPath(updateDTO.getPath());
