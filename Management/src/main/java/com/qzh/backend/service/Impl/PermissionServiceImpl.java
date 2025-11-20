@@ -17,7 +17,9 @@ import com.qzh.backend.service.PageRelatedPermissionService;
 import com.qzh.backend.service.PageService;
 import com.qzh.backend.service.PermissionService;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
@@ -32,7 +34,9 @@ public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permiss
 
     private final PageRelatedPermissionService pageRelatedPermissionService;
 
-    private final PageService pageService;
+    @Lazy
+    @Resource
+    private PageService pageService;
 
     @Override
     public Page<PermissionVO> getPermissionList(PermissionQueryDto dto) {
