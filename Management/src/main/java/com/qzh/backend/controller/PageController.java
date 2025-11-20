@@ -5,6 +5,7 @@ import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.model.dto.page.PageCreateDTO;
+import com.qzh.backend.model.dto.page.PageEditPermissionDTO;
 import com.qzh.backend.model.dto.page.PageQueryDTO;
 import com.qzh.backend.model.dto.page.PageUpdateDTO;
 import com.qzh.backend.model.vo.PageVO;
@@ -78,6 +79,26 @@ public class PageController {
     @GetMapping("all")
     public BaseResponse<List<PageVO>> getAllPage() {
         return ResultUtils.success(pageService.getAllPageWithPermissions());
+    }
+
+    /**
+     * 给页面赋权
+     */
+    @PostMapping("/{pageId}/permission/{permissionId}")
+    public BaseResponse<Void> addPagePermission(@PathVariable Long pageId, @PathVariable Long permissionId) {
+        boolean success = pageService.addPagePermission(pageId, permissionId);
+        ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "页面权限新增失败");
+        return ResultUtils.success(null);
+    }
+
+    /**
+     * 页面权限批量编辑
+     */
+    @PutMapping("/{pageId}/permission")
+    public BaseResponse<Void> updatePagePermissions(@PathVariable Long pageId, @RequestBody PageEditPermissionDTO permissionDTO) {
+        boolean success = pageService.updatePagePermissions(pageId, permissionDTO);
+        ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "页面权限修改失败");
+        return ResultUtils.success(null);
     }
 }
 

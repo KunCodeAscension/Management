@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.PageMapper;
 import com.qzh.backend.model.dto.page.PageCreateDTO;
+import com.qzh.backend.model.dto.page.PageEditPermissionDTO;
 import com.qzh.backend.model.dto.page.PageQueryDTO;
 import com.qzh.backend.model.dto.page.PageUpdateDTO;
 import com.qzh.backend.model.entity.PageInfo;
@@ -20,6 +21,7 @@ import com.qzh.backend.service.PermissionService;
 import com.qzh.backend.utils.ThrowUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -263,6 +265,80 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
             allPageVOList.forEach(vo -> vo.setPermissions(Collections.emptyList()));
         }
         return allPageVOList;
+    }
+
+    @Override
+    public Boolean addPagePermission(Long pageId, Long permissionId) {
+        // 参数校验
+        ThrowUtils.throwIf(pageId <= 0 || permissionId <= 0, ErrorCode.PARAMS_ERROR, "页面ID或者权限ID参数错误");
+
+        // 校验页面和权限是否存在
+        PageInfo page = this.getById(pageId);
+        ThrowUtils.throwIf(page == null, ErrorCode.NOT_FOUND_ERROR, "页面不存在");
+        Permission permission = permissionService.getById(permissionId);
+        ThrowUtils.throwIf(permission == null, ErrorCode.NOT_FOUND_ERROR, "权限不存在");
+
+        // 3. 校验是否已存在关联（避免重复添加）
+        boolean exists = pageRelatedPermissionService.count(
+                new LambdaQueryWrapper<PageRelatedPermission>()
+                        .eq(PageRelatedPermission::getPageId, pageId)
+                        .eq(PageRelatedPermission::getPermissionId, permissionId)
+        ) > 0;
+        ThrowUtils.throwIf(exists, ErrorCode.PARAMS_ERROR, "该页面已关联此权限");
+
+        // 4. 新增关联关系
+        PageRelatedPermission relation = new PageRelatedPermission();
+        relation.setPageId(pageId);
+        relation.setPermissionId(permissionId);
+        // TODO 可选：填充创建人ID（relation.setCreateBy(getCurrentUserId())）
+        return pageRelatedPermissionService.save(relation);
+    }
+
+    /**
+     * 2. 页面-权限修改接口（覆盖式更新：先删后加）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 事务保证原子性
+    public Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO) {
+        // 参数校验
+        ThrowUtils.throwIf(pageId <= 0 || permissionDTO == null, ErrorCode.PARAMS_ERROR, "参数不能为空");
+        List<Long> permissionIds = permissionDTO.getPermissionIds();
+
+        // 校验页面是否存在
+        PageInfo page = this.getById(pageId);
+        ThrowUtils.throwIf(page == null, ErrorCode.NOT_FOUND_ERROR, "页面不存在");
+
+        // 校验权限ID合法性（可选，提升健壮性）
+        if (!CollectionUtils.isEmpty(permissionIds)) {
+            long validCount = permissionService.count(
+                    new LambdaQueryWrapper<Permission>().in(Permission::getId, permissionIds)
+            );
+            ThrowUtils.throwIf(validCount != permissionIds.size(), ErrorCode.PARAMS_ERROR, "存在无效的权限ID");
+        }
+
+        // 先删除：该页面的所有旧权限关联
+        pageRelatedPermissionService.remove(
+                new LambdaQueryWrapper<PageRelatedPermission>()
+                        .eq(PageRelatedPermission::getPageId, pageId)
+        );
+
+        // 批量添加新权限关联
+        boolean saveSuccess = true;
+        if (!CollectionUtils.isEmpty(permissionIds)) {
+            List<PageRelatedPermission> relationList = permissionIds.stream()
+                    .map(permId -> {
+                        PageRelatedPermission relation = new PageRelatedPermission();
+                        relation.setPageId(pageId);
+                        relation.setPermissionId(permId);
+                        // TODO 可选：填充创建人ID
+                        return relation;
+                    })
+                    .collect(Collectors.toList());
+
+            saveSuccess = pageRelatedPermissionService.saveBatch(relationList);
+        }
+
+        return saveSuccess;
     }
 }
 

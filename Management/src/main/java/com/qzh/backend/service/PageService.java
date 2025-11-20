@@ -3,10 +3,12 @@ package com.qzh.backend.service;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.qzh.backend.model.dto.page.PageCreateDTO;
+import com.qzh.backend.model.dto.page.PageEditPermissionDTO;
 import com.qzh.backend.model.dto.page.PageQueryDTO;
 import com.qzh.backend.model.dto.page.PageUpdateDTO;
 import com.qzh.backend.model.entity.PageInfo;
 import com.qzh.backend.model.vo.PageVO;
+import com.qzh.backend.model.vo.PermissionVO;
 
 import java.util.List;
 
@@ -41,5 +43,15 @@ public interface PageService extends IService<PageInfo> {
      * 获取所有页面
      */
     List<PageVO> getAllPageWithPermissions();
+
+    /**
+     * 页面-权限新增接口
+     */
+    Boolean addPagePermission(Long pageId, Long permissionId);
+
+    /**
+     * 页面-权限修改接口（覆盖式更新）
+     */
+    Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO);
 }
 
