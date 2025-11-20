@@ -103,13 +103,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         User user = this.getById(id);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR, "用户不存在");
         UserVO userVO = UserVO.toUserVO(user);
-
         // 查询该用户的角色关联关系
         List<UserRelatedRole> userRoleRelations = userRelatedRoleService.list(
                 new LambdaQueryWrapper<UserRelatedRole>()
                         .eq(UserRelatedRole::getUserId, id)
         );
-
         // 填充完整角色列表（替换原角色名称列表）
         if (!CollectionUtils.isEmpty(userRoleRelations)) {
             // 提取角色ID列表（去重）
