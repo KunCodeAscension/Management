@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.RoleMapper;
+import com.qzh.backend.model.dto.role.RoleAddPermissionDTO;
 import com.qzh.backend.model.dto.role.RoleCreateDTO;
 import com.qzh.backend.model.dto.role.RoleQueryDTO;
 import com.qzh.backend.model.dto.role.RoleUpdateDTO;
@@ -19,6 +20,7 @@ import com.qzh.backend.service.RoleService;
 import com.qzh.backend.utils.ThrowUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -171,5 +173,42 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     @Override
     public Boolean deleteRole(Long id) {
         return this.removeById(id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 事务保证：删和加原子性
+    public Boolean assignRolePermissions(Long roleId, RoleAddPermissionDTO permissionDTO) {
+        // 基础参数校验
+        ThrowUtils.throwIf(roleId <= 0, ErrorCode.PARAMS_ERROR, "角色ID不能为空");
+        ThrowUtils.throwIf(permissionDTO == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        List<Long> permissionIds = permissionDTO.getPermissionIds();
+        // 校验角色是否存在
+        Role role = this.getById(roleId);
+        ThrowUtils.throwIf(role == null, ErrorCode.NOT_FOUND_ERROR, "角色不存在");
+
+        // 先删除：该角色的所有旧权限关联（核心：覆盖式更新）
+        roleRelatedPermissionService.remove(
+                new LambdaQueryWrapper<RoleRelatedPermission>()
+                        .eq(RoleRelatedPermission::getRoleId, roleId)
+        );
+        // 后添加：批量添加新的权限关联（空列表则只删不加，清空角色权限）
+        boolean saveNewPermissions = true;
+        if (!CollectionUtils.isEmpty(permissionIds)) {
+            // 批量构建角色-权限关联实体
+            List<RoleRelatedPermission> rolePermissionRelations = permissionIds.stream()
+                    .map(permissionId -> {
+                        RoleRelatedPermission relation = new RoleRelatedPermission();
+                        relation.setRoleId(roleId);
+                        relation.setPermissionId(permissionId);
+                        // TODO 可选：填充创建人ID（需获取当前登录用户ID）
+                        // relation.setCreateBy(getCurrentUserId());
+                        return relation;
+                    })
+                    .collect(Collectors.toList());
+
+            // 批量保存关联关系
+            saveNewPermissions = roleRelatedPermissionService.saveBatch(rolePermissionRelations);
+        }
+        return saveNewPermissions;
     }
 }

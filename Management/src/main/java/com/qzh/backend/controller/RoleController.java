@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
 import com.qzh.backend.exception.ErrorCode;
+import com.qzh.backend.model.dto.role.RoleAddPermissionDTO;
 import com.qzh.backend.model.dto.role.RoleCreateDTO;
 import com.qzh.backend.model.dto.role.RoleQueryDTO;
 import com.qzh.backend.model.dto.role.RoleUpdateDTO;
@@ -51,6 +52,14 @@ public class RoleController {
     public BaseResponse<Void> deleteRole(@PathVariable Long id) {
         Boolean b = roleService.deleteRole(id);
         ThrowUtils.throwIf(!b, ErrorCode.SYSTEM_ERROR,"删除角色出错");
+        return ResultUtils.success(null);
+    }
+
+    @PutMapping("/{roleId}/permission")
+    public BaseResponse<Void> assignRolePermissions(@PathVariable Long roleId, @RequestBody RoleAddPermissionDTO permissionDTO
+    ) {
+        boolean success = roleService.assignRolePermissions(roleId, permissionDTO);
+        ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "角色权限修改失败");
         return ResultUtils.success(null);
     }
 
