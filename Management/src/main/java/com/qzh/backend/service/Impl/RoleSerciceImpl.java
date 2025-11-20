@@ -6,17 +6,10 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.RoleMapper;
-import com.qzh.backend.model.dto.role.RoleAddPermissionDTO;
-import com.qzh.backend.model.dto.role.RoleCreateDTO;
-import com.qzh.backend.model.dto.role.RoleQueryDTO;
-import com.qzh.backend.model.dto.role.RoleUpdateDTO;
-import com.qzh.backend.model.entity.Permission;
-import com.qzh.backend.model.entity.Role;
-import com.qzh.backend.model.entity.RoleRelatedPermission;
+import com.qzh.backend.model.dto.role.*;
+import com.qzh.backend.model.entity.*;
 import com.qzh.backend.model.vo.RoleVO;
-import com.qzh.backend.service.PermissionService;
-import com.qzh.backend.service.RoleRelatedPermissionService;
-import com.qzh.backend.service.RoleService;
+import com.qzh.backend.service.*;
 import com.qzh.backend.utils.ThrowUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -35,6 +28,10 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     private final RoleRelatedPermissionService roleRelatedPermissionService;
 
     private final PermissionService permissionService;
+
+    private final PageService pageService;
+
+    private final RoleRelatedPageService roleRelatedPageService;
 
     @Override
     public Page<RoleVO> getRolePage(RoleQueryDTO queryDTO) {
@@ -210,5 +207,48 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
             saveNewPermissions = roleRelatedPermissionService.saveBatch(rolePermissionRelations);
         }
         return saveNewPermissions;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class) // 事务保证：删和加原子性
+    public Boolean assignRolePages(Long roleId, RolePageAssignDTO assignDTO) {
+        // 基础参数校验
+        ThrowUtils.throwIf(roleId <= 0, ErrorCode.PARAMS_ERROR, "角色ID不能为空");
+        ThrowUtils.throwIf(assignDTO == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
+        List<Long> pageIds = assignDTO.getPageIds();
+        // 校验角色是否存在
+        Role role = this.getById(roleId);
+        ThrowUtils.throwIf(role == null, ErrorCode.NOT_FOUND_ERROR, "角色不存在");
+        // 校验页面ID是否合法（可选：避免分配不存在的页面）
+        if (!CollectionUtils.isEmpty(pageIds)) {
+            long validPageCount = pageService.count(
+                    new LambdaQueryWrapper<PageInfo>()
+                            .in(PageInfo::getId, pageIds)
+            );
+            ThrowUtils.throwIf(validPageCount != pageIds.size(), ErrorCode.PARAMS_ERROR, "存在无效的页面ID");
+        }
+        // 先删除：该角色的所有旧页面关联（核心：覆盖式更新）
+        roleRelatedPageService.remove(
+                new LambdaQueryWrapper<RoleRelatedPage>()
+                        .eq(RoleRelatedPage::getRoleId, roleId)
+        );
+        // 后添加：批量添加新的角色-页面关联
+        boolean saveNewRelations = true;
+        if (!CollectionUtils.isEmpty(pageIds)) {
+            // 批量构建角色-页面关联实体
+            List<RoleRelatedPage> relationList = pageIds.stream()
+                    .map(pageId -> {
+                        RoleRelatedPage relation = new RoleRelatedPage();
+                        relation.setRoleId(roleId);
+                        relation.setPageId(pageId);
+                        // TODO 可选：填充创建人ID（需获取当前登录用户ID）
+                        // relation.setCreateBy(getCurrentUserId());
+                        return relation;
+                    })
+                    .collect(Collectors.toList());
+            // 批量保存关联关系
+            saveNewRelations = roleRelatedPageService.saveBatch(relationList);
+        }
+        return saveNewRelations;
     }
 }

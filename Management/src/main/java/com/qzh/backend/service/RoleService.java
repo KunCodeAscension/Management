@@ -2,10 +2,7 @@ package com.qzh.backend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.qzh.backend.model.dto.role.RoleAddPermissionDTO;
-import com.qzh.backend.model.dto.role.RoleCreateDTO;
-import com.qzh.backend.model.dto.role.RoleQueryDTO;
-import com.qzh.backend.model.dto.role.RoleUpdateDTO;
+import com.qzh.backend.model.dto.role.*;
 import com.qzh.backend.model.entity.Role;
 import com.qzh.backend.model.vo.RoleVO;
 
@@ -40,5 +37,10 @@ public interface RoleService extends IService<Role> {
      * 给角色分配权限（先删后加，覆盖式更新）
      */
     Boolean assignRolePermissions(Long roleId, RoleAddPermissionDTO permissionDTO);
+
+    /**
+     * 给角色分配页面
+     */
+    Boolean assignRolePages(Long roleId, RolePageAssignDTO assignDTO);
 
 }

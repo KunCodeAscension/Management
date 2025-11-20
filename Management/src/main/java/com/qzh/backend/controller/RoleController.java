@@ -4,10 +4,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
 import com.qzh.backend.exception.ErrorCode;
-import com.qzh.backend.model.dto.role.RoleAddPermissionDTO;
-import com.qzh.backend.model.dto.role.RoleCreateDTO;
-import com.qzh.backend.model.dto.role.RoleQueryDTO;
-import com.qzh.backend.model.dto.role.RoleUpdateDTO;
+import com.qzh.backend.model.dto.role.*;
 import com.qzh.backend.model.vo.RoleVO;
 import com.qzh.backend.service.RoleService;
 import com.qzh.backend.utils.ThrowUtils;
@@ -56,10 +53,16 @@ public class RoleController {
     }
 
     @PutMapping("/{roleId}/permission")
-    public BaseResponse<Void> assignRolePermissions(@PathVariable Long roleId, @RequestBody RoleAddPermissionDTO permissionDTO
-    ) {
+    public BaseResponse<Void> assignRolePermissions(@PathVariable Long roleId, @RequestBody RoleAddPermissionDTO permissionDTO) {
         boolean success = roleService.assignRolePermissions(roleId, permissionDTO);
         ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "角色权限修改失败");
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("/{roleId}/assign-pages")
+    public BaseResponse<Void> assignRolePages(@PathVariable Long roleId, @RequestBody RolePageAssignDTO assignDTO) {
+        boolean success = roleService.assignRolePages(roleId, assignDTO);
+        ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "页面权限分配失败");
         return ResultUtils.success(null);
     }
 
