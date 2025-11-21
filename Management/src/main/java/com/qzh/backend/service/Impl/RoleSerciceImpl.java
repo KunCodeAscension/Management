@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.RoleMapper;
 import com.qzh.backend.model.dto.role.*;
@@ -22,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.qzh.backend.constants.RoleNameConstant.*;
 
 @RequiredArgsConstructor
 @Service
@@ -174,6 +177,10 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
     @Override
     public Boolean deleteRole(Long id) {
+        Role role = this.getById(id);
+        if(ADMIN.equals(role.getRoleName()) || CUSTOMER.equals(role.getRoleName()) || SUPPLIER.equals(role.getRoleName())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"该角色不可删除");
+        }
         return this.removeById(id);
     }
 

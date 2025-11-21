@@ -11,7 +11,6 @@ import com.qzh.backend.service.RoleService;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.apache.ibatis.annotations.Update;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;

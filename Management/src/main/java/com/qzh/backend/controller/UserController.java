@@ -1,6 +1,7 @@
 package com.qzh.backend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.qzh.backend.annotation.AuthCheck;
 import com.qzh.backend.annotation.LogInfoRecord;
 import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
@@ -26,12 +27,14 @@ public class UserController {
     private final UserService userService;
 
     @GetMapping("/list")
+//    @AuthCheck(interfaceName = USER_LIST_GET)
     public BaseResponse<Page<UserVO>> getUserList(@Valid UserQueryDTO queryDTO) {
         Page<UserVO> userPage = userService.getUserPage(queryDTO);
         return ResultUtils.success(userPage);
     }
 
     @GetMapping("/{id}")
+//    @AuthCheck(interfaceName = USER_DETAIL_GET)
     public BaseResponse<UserVO> getUserDetail(@PathVariable Long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         UserVO userVO = userService.getUserDetailById(id);
@@ -39,6 +42,7 @@ public class UserController {
     }
 
     @PostMapping
+//    @AuthCheck(interfaceName = USER_CREATE_POST)
     @LogInfoRecord(SystemModule = USER_MODULE + ":" + USER_CREATE_POST)
     public BaseResponse<Long> createUser(@Valid @RequestBody UserCreateDTO dto) {
         ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
@@ -47,6 +51,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
+//    @AuthCheck(interfaceName = USER_UPDATE_PUT)
     @LogInfoRecord(SystemModule = USER_MODULE + ":" + USER_UPDATE_PUT)
     public BaseResponse<Void> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDTO dto,HttpServletRequest request) {
         ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
@@ -57,6 +62,7 @@ public class UserController {
     }
 
     @PostMapping("/{id}/reset-password")
+//    @AuthCheck(interfaceName = USER_RESET_PASSWORD_POST)
     @LogInfoRecord(SystemModule = USER_MODULE + ":" + USER_RESET_PASSWORD_POST)
     public BaseResponse<Void> resetPassword(@PathVariable Long id, @Valid @RequestBody ResetPasswordDTO dto) {
         ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
@@ -67,6 +73,7 @@ public class UserController {
     }
 
     @PostMapping("/batch-status")
+//    @AuthCheck(interfaceName = USER_BATCH_STATUS_POST)
     @LogInfoRecord(SystemModule = USER_MODULE + ":" + USER_BATCH_STATUS_POST)
     public BaseResponse<Void> batchStatus(@Valid @RequestBody BatchStatusDTO dto) {
         ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
@@ -76,6 +83,7 @@ public class UserController {
     }
 
     @DeleteMapping("{id}")
+//    @AuthCheck(interfaceName = USER_DELETE_DELETE)
     @LogInfoRecord(SystemModule = USER_MODULE + ":" + USER_DELETE_DELETE)
     public BaseResponse<Void> deleteUser(@PathVariable Long id) {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
