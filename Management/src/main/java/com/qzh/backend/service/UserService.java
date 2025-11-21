@@ -36,7 +36,7 @@ public interface UserService extends IService<User> {
      * @param id 用户ID
      * @param updateDTO 更新参数
      */
-    Boolean updateUser(Long id, UserUpdateDTO updateDTO);
+    Boolean updateUser(Long id, UserUpdateDTO updateDTO,HttpServletRequest request);
 
     /**
      * 重置用户密码

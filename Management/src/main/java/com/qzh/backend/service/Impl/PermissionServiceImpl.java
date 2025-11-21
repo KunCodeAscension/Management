@@ -113,17 +113,17 @@ public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permiss
     }
 
     @Override
-    public Long createPermission(PermissionCreateDTO createDTO) {
+    public Long createPermission(PermissionCreateDTO createDTO,HttpServletRequest request) {
         ThrowUtils.throwIf(createDTO == null, ErrorCode.PARAMS_ERROR);
         // 检查权限名称是否已存在
         boolean exists = this.count(new LambdaQueryWrapper<Permission>()
                 .eq(Permission::getName, createDTO.getName())) > 0;
         ThrowUtils.throwIf(exists, ErrorCode.PARAMS_ERROR, "该权限名称已存在");
-        
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         Permission permission = new Permission();
         permission.setName(createDTO.getName());
         permission.setDescription(createDTO.getDescription());
-        // TODO 创建人ID字段填充
+        permission.setCreateBy(loginUser.getId());
         boolean save = this.save(permission);
         ThrowUtils.throwIf(!save, ErrorCode.SYSTEM_ERROR, "新增权限出错");
         return permission.getId();

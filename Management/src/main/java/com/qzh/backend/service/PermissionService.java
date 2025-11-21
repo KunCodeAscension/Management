@@ -21,7 +21,7 @@ public interface PermissionService extends IService<Permission> {
     /**
      * 创建权限
      */
-    Long createPermission(PermissionCreateDTO createDTO);
+    Long createPermission(PermissionCreateDTO createDTO,HttpServletRequest request);
 
     /**
      * 更新权限信息

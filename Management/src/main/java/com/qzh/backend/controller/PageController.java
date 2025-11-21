@@ -1,6 +1,7 @@
 package com.qzh.backend.controller;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.qzh.backend.annotation.LogInfoRecord;
 import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
 import com.qzh.backend.exception.ErrorCode;
@@ -19,6 +20,9 @@ import org.springframework.web.bind.annotation.*;
 import javax.validation.Valid;
 import java.util.List;
 
+import static com.qzh.backend.constants.Interface.PageInterfaceConstant.*;
+import static com.qzh.backend.constants.ModuleConstant.PAGE_MODULE;
+
 @RestController
 @RequestMapping("page")
 @RequiredArgsConstructor
@@ -27,7 +31,7 @@ public class PageController {
     private final PageService pageService;
 
     /**
-     * 分页查询页面列表 GET/page/list
+     * 分页查询页面列表
      */
     @GetMapping("/list")
     public BaseResponse<Page<PageVO>> getPageList(PageQueryDTO dto) {
@@ -36,7 +40,7 @@ public class PageController {
     }
 
     /**
-     * 根据ID查询页面详情 GET/page/:id
+     * 根据ID查询页面详情
      */
     @GetMapping("/{id}")
     public BaseResponse<PageVO> getPageById(@PathVariable Long id) {
@@ -46,19 +50,21 @@ public class PageController {
     }
 
     /**
-     * 创建页面 POST/page
+     * 创建页面
      */
     @PostMapping
-    public BaseResponse<Long> createPage(@Valid @RequestBody PageCreateDTO dto) {
+    @LogInfoRecord(SystemModule = PAGE_MODULE + ":" + PAGE_CREATE_POST)
+    public BaseResponse<Long> createPage(@Valid @RequestBody PageCreateDTO dto,HttpServletRequest request) {
         ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
-        Long pageId = pageService.createPage(dto);
+        Long pageId = pageService.createPage(dto,request);
         return ResultUtils.success(pageId);
     }
 
     /**
-     * 更新页面 PUT/page/:id
+     * 更新页面
      */
     @PutMapping("/{id}")
+    @LogInfoRecord(SystemModule = PAGE_MODULE + ":" + PAGE_UPDATE_PUT)
     public BaseResponse<Void> updatePage(@PathVariable Long id, @Valid @RequestBody PageUpdateDTO dto) {
         Boolean result = pageService.updatePage(id, dto);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "页面更新出错");
@@ -66,9 +72,10 @@ public class PageController {
     }
 
     /**
-     * 删除页面 DELETE/page/:id
+     * 删除页面
      */
     @DeleteMapping("/{id}")
+    @LogInfoRecord(SystemModule = PAGE_MODULE + ":" + PAGE_DELETE_DELETE)
     public BaseResponse<Void> deletePage(@PathVariable Long id) {
         Boolean result = pageService.deletePage(id);
         ThrowUtils.throwIf(!result, ErrorCode.SYSTEM_ERROR, "页面删除出错");
@@ -76,7 +83,7 @@ public class PageController {
     }
 
     /**
-     * 返回所有页面数据 GET/page/all
+     * 返回所有页面数据
      */
     @GetMapping("all")
     public BaseResponse<List<PageVO>> getAllPage() {
@@ -84,21 +91,23 @@ public class PageController {
     }
 
     /**
-     * 给页面赋权 POST/:id/permission/:id
+     * 给页面赋权
      */
     @PostMapping("/{pageId}/permission/{permissionId}")
-    public BaseResponse<Void> addPagePermission(@PathVariable Long pageId, @PathVariable Long permissionId) {
-        boolean success = pageService.addPagePermission(pageId, permissionId);
+    @LogInfoRecord(SystemModule = PAGE_MODULE + ":" + PAGE_ASSIGN_SINGLE_PERMISSION_POST)
+    public BaseResponse<Void> addPagePermission(@PathVariable Long pageId, @PathVariable Long permissionId,HttpServletRequest request) {
+        boolean success = pageService.addPagePermission(pageId, permissionId,request);
         ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "页面权限新增失败");
         return ResultUtils.success(null);
     }
 
     /**
-     * 页面权限批量编辑 PUT/:id/permission
+     * 页面权限批量编辑
      */
     @PutMapping("/{pageId}/permission")
-    public BaseResponse<Void> updatePagePermissions(@PathVariable Long pageId, @RequestBody PageEditPermissionDTO permissionDTO) {
-        boolean success = pageService.updatePagePermissions(pageId, permissionDTO);
+    @LogInfoRecord(SystemModule = PAGE_MODULE + ":" + PAGE_ASSIGN_BATCH_PERMISSION_PUT)
+    public BaseResponse<Void> updatePagePermissions(@PathVariable Long pageId, @RequestBody PageEditPermissionDTO permissionDTO,HttpServletRequest request) {
+        boolean success = pageService.updatePagePermissions(pageId, permissionDTO,request);
         ThrowUtils.throwIf(!success, ErrorCode.SYSTEM_ERROR, "页面权限修改失败");
         return ResultUtils.success(null);
     }

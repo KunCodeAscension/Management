@@ -18,6 +18,7 @@ import com.qzh.backend.model.vo.UserVO;
 import com.qzh.backend.service.RoleService;
 import com.qzh.backend.service.UserRelatedRoleService;
 import com.qzh.backend.service.UserService;
+import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +39,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     private final UserRelatedRoleService userRelatedRoleService;
 
     private final RoleService roleService;
+
+    private final GetLoginUserUtil getLoginUserUtil;
 
     public Page<UserVO> getUserPage(UserQueryDTO queryDTO) {
         ThrowUtils.throwIf(queryDTO == null, ErrorCode.PARAMS_ERROR);
@@ -160,30 +163,30 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Boolean updateUser(Long id, UserUpdateDTO updateDTO) {
+    public Boolean updateUser(Long id, UserUpdateDTO updateDTO,HttpServletRequest request) {
         ThrowUtils.throwIf(updateDTO == null, ErrorCode.PARAMS_ERROR);
         User user = this.getById(id);
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR,"用户不存在");
         user.setUserName(updateDTO.getUserName());
         user.setPhone(updateDTO.getPhone());
         user.setStatus(UserStatus.getEnumByValue(updateDTO.getStatus()).getValue());
-        // 4. 处理角色关联（先删后加，覆盖式更新）
+        User loginUser = getLoginUserUtil.getLoginUser(request);
+        // 处理角色关联（先删后加，覆盖式更新）
         List<Long> newRoleIds = updateDTO.getRoleIds();
         if (!CollectionUtils.isEmpty(newRoleIds)) {
-            // 4.1 删除该用户原有所有角色关联（sys_user_role表）
+            // 删除该用户原有所有角色关联（sys_user_role表）
             userRelatedRoleService.remove(
                     new LambdaQueryWrapper<UserRelatedRole>()
                             .eq(UserRelatedRole::getUserId, id)
             );
 
-            // 4.2 批量构建新的角色关联实体
+            // 批量构建新的角色关联实体
             List<UserRelatedRole> userRoleList = newRoleIds.stream()
                     .map(roleId -> {
                         UserRelatedRole userRelatedRole = new UserRelatedRole();
                         userRelatedRole.setUserId(id);
                         userRelatedRole.setRoleId(roleId);
-                        // TODO 创建人ID
-                        // userRelatedRole.setCreateBy(getCurrentUserId());
+                        userRelatedRole.setCreateBy(loginUser.getId());
                         return userRelatedRole;
                     })
                     .collect(Collectors.toList());
@@ -230,7 +233,6 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     public Boolean deleteUser(Long id) {
          return this.removeById(id);
-         // TODO 删除角色 权限 关联表 数据
     }
 
     @Override

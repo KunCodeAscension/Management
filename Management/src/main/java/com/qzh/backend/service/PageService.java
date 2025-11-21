@@ -28,7 +28,7 @@ public interface PageService extends IService<PageInfo> {
     /**
      * 创建页面
      */
-    Long createPage(PageCreateDTO createDTO);
+    Long createPage(PageCreateDTO createDTO,HttpServletRequest request);
 
     /**
      * 更新页面信息
@@ -48,12 +48,12 @@ public interface PageService extends IService<PageInfo> {
     /**
      * 页面-权限新增接口
      */
-    Boolean addPagePermission(Long pageId, Long permissionId);
+    Boolean addPagePermission(Long pageId, Long permissionId,HttpServletRequest request);
 
     /**
      * 页面-权限修改接口（覆盖式更新）
      */
-    Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO);
+    Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO,HttpServletRequest request);
 
     List<PageInfo> getUserPage(HttpServletRequest request);
 }

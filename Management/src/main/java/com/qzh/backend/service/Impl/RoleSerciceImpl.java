@@ -10,7 +10,9 @@ import com.qzh.backend.model.dto.role.*;
 import com.qzh.backend.model.entity.*;
 import com.qzh.backend.model.vo.RoleVO;
 import com.qzh.backend.service.*;
+import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,6 +34,8 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     private final PageService pageService;
 
     private final RoleRelatedPageService roleRelatedPageService;
+
+    private final GetLoginUserUtil getLoginUserUtil;
 
     @Override
     public Page<RoleVO> getRolePage(RoleQueryDTO queryDTO) {
@@ -143,15 +147,16 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
     }
 
     @Override
-    public Long createRole(RoleCreateDTO createDTO) {
+    public Long createRole(RoleCreateDTO createDTO, HttpServletRequest request) {
         ThrowUtils.throwIf(createDTO == null, ErrorCode.PARAMS_ERROR);
         boolean b = this.count(new LambdaQueryWrapper<Role>()
                 .eq(Role::getRoleName, createDTO.getRoleName())) > 0;
         ThrowUtils.throwIf(b,ErrorCode.PARAMS_ERROR,"该角色已存在");
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         Role role = new Role();
         role.setRoleName(createDTO.getRoleName());
         role.setDescription(createDTO.getDescription());
-        // TODO 创建人ID字段填充
+        role.setCreateBy(loginUser.getId());
         boolean save = this.save(role);
         ThrowUtils.throwIf(!save,ErrorCode.SYSTEM_ERROR,"新增角色出错");
         return role.getId();
@@ -174,7 +179,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 事务保证：删和加原子性
-    public Boolean assignRolePermissions(Long roleId, RoleAddPermissionDTO permissionDTO) {
+    public Boolean assignRolePermissions(Long roleId, RoleAddPermissionDTO permissionDTO,HttpServletRequest request) {
         // 基础参数校验
         ThrowUtils.throwIf(roleId <= 0, ErrorCode.PARAMS_ERROR, "角色ID不能为空");
         ThrowUtils.throwIf(permissionDTO == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
@@ -188,6 +193,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
                 new LambdaQueryWrapper<RoleRelatedPermission>()
                         .eq(RoleRelatedPermission::getRoleId, roleId)
         );
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         // 后添加：批量添加新的权限关联（空列表则只删不加，清空角色权限）
         boolean saveNewPermissions = true;
         if (!CollectionUtils.isEmpty(permissionIds)) {
@@ -197,8 +203,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
                         RoleRelatedPermission relation = new RoleRelatedPermission();
                         relation.setRoleId(roleId);
                         relation.setPermissionId(permissionId);
-                        // TODO 可选：填充创建人ID（需获取当前登录用户ID）
-                        // relation.setCreateBy(getCurrentUserId());
+                        relation.setCreateBy(loginUser.getId());
                         return relation;
                     })
                     .collect(Collectors.toList());
@@ -211,7 +216,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
 
     @Override
     @Transactional(rollbackFor = Exception.class) // 事务保证：删和加原子性
-    public Boolean assignRolePages(Long roleId, RolePageAssignDTO assignDTO) {
+    public Boolean assignRolePages(Long roleId, RolePageAssignDTO assignDTO,HttpServletRequest request) {
         // 基础参数校验
         ThrowUtils.throwIf(roleId <= 0, ErrorCode.PARAMS_ERROR, "角色ID不能为空");
         ThrowUtils.throwIf(assignDTO == null, ErrorCode.PARAMS_ERROR, "请求参数不能为空");
@@ -233,6 +238,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
                         .eq(RoleRelatedPage::getRoleId, roleId)
         );
         // 后添加：批量添加新的角色-页面关联
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         boolean saveNewRelations = true;
         if (!CollectionUtils.isEmpty(pageIds)) {
             // 批量构建角色-页面关联实体
@@ -241,8 +247,7 @@ public class RoleSerciceImpl extends ServiceImpl<RoleMapper, Role> implements Ro
                         RoleRelatedPage relation = new RoleRelatedPage();
                         relation.setRoleId(roleId);
                         relation.setPageId(pageId);
-                        // TODO 可选：填充创建人ID（需获取当前登录用户ID）
-                        // relation.setCreateBy(getCurrentUserId());
+                        relation.setCreateBy(loginUser.getId());
                         return relation;
                     })
                     .collect(Collectors.toList());

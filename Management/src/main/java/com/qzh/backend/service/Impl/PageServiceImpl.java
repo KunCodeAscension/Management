@@ -41,6 +41,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
 
     private final RoleRelatedPageService roleRelatedPageService;
 
+
     @Override
     public Page<PageVO> getPageList(PageQueryDTO queryDTO) {
         ThrowUtils.throwIf(queryDTO == null, ErrorCode.PARAMS_ERROR);
@@ -136,7 +137,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
     }
 
     @Override
-    public Long createPage(PageCreateDTO createDTO) {
+    public Long createPage(PageCreateDTO createDTO,HttpServletRequest request) {
         ThrowUtils.throwIf(createDTO == null, ErrorCode.PARAMS_ERROR);
 
         // 唯一性校验
@@ -147,6 +148,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
                 .eq(PageInfo::getParentId,createDTO.getParentId())
         ) > 0;
         ThrowUtils.throwIf(b,ErrorCode.PARAMS_ERROR,"页面已存在");
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         PageInfo page = new PageInfo();
         page.setParentId(createDTO.getParentId());
         page.setName(createDTO.getName());
@@ -156,8 +158,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
         page.setOrderNum(createDTO.getOrderNum() != null ? createDTO.getOrderNum() : 0);
         page.setVisible(createDTO.getVisible() != null ? createDTO.getVisible() : 1);
         page.setMeta(createDTO.getMeta());
-
-        // TODO 创建人ID字段填充
+        page.setCreateBy(loginUser.getId());
         boolean save = this.save(page);
         ThrowUtils.throwIf(!save, ErrorCode.SYSTEM_ERROR, "新增页面出错");
         return page.getId();
@@ -272,7 +273,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
     }
 
     @Override
-    public Boolean addPagePermission(Long pageId, Long permissionId) {
+    public Boolean addPagePermission(Long pageId, Long permissionId,HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(pageId <= 0 || permissionId <= 0, ErrorCode.PARAMS_ERROR, "页面ID或者权限ID参数错误");
 
@@ -281,20 +282,19 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
         ThrowUtils.throwIf(page == null, ErrorCode.NOT_FOUND_ERROR, "页面不存在");
         Permission permission = permissionService.getById(permissionId);
         ThrowUtils.throwIf(permission == null, ErrorCode.NOT_FOUND_ERROR, "权限不存在");
-
-        // 3. 校验是否已存在关联（避免重复添加）
+        // 校验是否已存在关联（避免重复添加）
         boolean exists = pageRelatedPermissionService.count(
                 new LambdaQueryWrapper<PageRelatedPermission>()
                         .eq(PageRelatedPermission::getPageId, pageId)
                         .eq(PageRelatedPermission::getPermissionId, permissionId)
         ) > 0;
         ThrowUtils.throwIf(exists, ErrorCode.PARAMS_ERROR, "该页面已关联此权限");
-
-        // 4. 新增关联关系
+        // 新增关联关系
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         PageRelatedPermission relation = new PageRelatedPermission();
         relation.setPageId(pageId);
         relation.setPermissionId(permissionId);
-        // TODO 可选：填充创建人ID（relation.setCreateBy(getCurrentUserId())）
+        relation.setCreateBy(loginUser.getId());
         return pageRelatedPermissionService.save(relation);
     }
 
@@ -303,7 +303,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
      */
     @Override
     @Transactional(rollbackFor = Exception.class) // 事务保证原子性
-    public Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO) {
+    public Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO,HttpServletRequest request) {
         // 参数校验
         ThrowUtils.throwIf(pageId <= 0 || permissionDTO == null, ErrorCode.PARAMS_ERROR, "参数不能为空");
         List<Long> permissionIds = permissionDTO.getPermissionIds();
@@ -327,6 +327,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
         );
 
         // 批量添加新权限关联
+        User loginUser = getLoginUserUtil.getLoginUser(request);
         boolean saveSuccess = true;
         if (!CollectionUtils.isEmpty(permissionIds)) {
             List<PageRelatedPermission> relationList = permissionIds.stream()
@@ -334,7 +335,7 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
                         PageRelatedPermission relation = new PageRelatedPermission();
                         relation.setPageId(pageId);
                         relation.setPermissionId(permId);
-                        // TODO 可选：填充创建人ID
+                        relation.setCreateBy(loginUser.getId());
                         return relation;
                     })
                     .collect(Collectors.toList());
