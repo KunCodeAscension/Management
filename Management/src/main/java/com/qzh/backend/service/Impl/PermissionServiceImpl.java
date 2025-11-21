@@ -9,15 +9,13 @@ import com.qzh.backend.mapper.PermissionMapper;
 import com.qzh.backend.model.dto.permission.PermissionCreateDTO;
 import com.qzh.backend.model.dto.permission.PermissionQueryDto;
 import com.qzh.backend.model.dto.permission.PermissionUpdateDTO;
-import com.qzh.backend.model.entity.PageInfo;
-import com.qzh.backend.model.entity.PageRelatedPermission;
-import com.qzh.backend.model.entity.Permission;
+import com.qzh.backend.model.entity.*;
 import com.qzh.backend.model.vo.PermissionVO;
-import com.qzh.backend.service.PageRelatedPermissionService;
-import com.qzh.backend.service.PageService;
-import com.qzh.backend.service.PermissionService;
+import com.qzh.backend.service.*;
+import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -33,6 +31,12 @@ import java.util.stream.Collectors;
 public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permission> implements PermissionService {
 
     private final PageRelatedPermissionService pageRelatedPermissionService;
+
+    private final GetLoginUserUtil getLoginUserUtil;
+
+    private final UserRelatedRoleService userRelatedRoleService;
+
+    private final RoleRelatedPermissionService roleRelatedPermissionService;
 
     @Lazy
     @Resource
@@ -190,5 +194,43 @@ public class PermissionServiceImpl extends ServiceImpl<PermissionMapper, Permiss
             permissionVO.setPages(Collections.emptyList());
         }
         return permissionVO;
+    }
+
+    @Override
+    public List<Permission> getUserPermissions(HttpServletRequest request) {
+        // 获取登录用户
+        User loginUser = getLoginUserUtil.getLoginUser(request);
+        Long userId = loginUser.getId();
+        // 查询用户关联的所有角色ID
+        List<UserRelatedRole> userRoleRelations = userRelatedRoleService.list(
+                new LambdaQueryWrapper<UserRelatedRole>()
+                        .eq(UserRelatedRole::getUserId, userId)
+        );
+        if (CollectionUtils.isEmpty(userRoleRelations)) {
+            return Collections.emptyList();
+        }
+        // 提取角色ID列表
+        List<Long> roleIds = userRoleRelations.stream()
+                .map(UserRelatedRole::getRoleId)
+                .distinct()
+                .collect(Collectors.toList());
+        // 查询所有角色关联的权限ID
+        List<RoleRelatedPermission> rolePermissionRelations = roleRelatedPermissionService.list(
+                new LambdaQueryWrapper<RoleRelatedPermission>()
+                        .in(RoleRelatedPermission::getRoleId, roleIds)
+        );
+        if (CollectionUtils.isEmpty(rolePermissionRelations)) {
+            return Collections.emptyList(); // 角色无关联权限
+        }
+        // 提取权限ID列表
+        List<Long> permissionIds = rolePermissionRelations.stream()
+                .map(RoleRelatedPermission::getPermissionId)
+                .distinct()
+                .collect(Collectors.toList());
+        // 查询完整的权限信息
+        return this.list(
+                new LambdaQueryWrapper<Permission>()
+                        .in(Permission::getId, permissionIds)
+        );
     }
 }

@@ -7,13 +7,16 @@ import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.model.dto.permission.PermissionCreateDTO;
 import com.qzh.backend.model.dto.permission.PermissionQueryDto;
 import com.qzh.backend.model.dto.permission.PermissionUpdateDTO;
+import com.qzh.backend.model.entity.Permission;
 import com.qzh.backend.model.vo.PermissionVO;
 import com.qzh.backend.service.PermissionService;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/system/permission")
@@ -65,6 +68,12 @@ public class PermissionController {
     public BaseResponse<PermissionVO> getPermissionDetail(@PathVariable Long id) {
         PermissionVO permissionVO = permissionService.getPermissionDetailById(id);
         return ResultUtils.success(permissionVO);
+    }
+
+    @PostMapping("user")
+    public BaseResponse<List<Permission>> getUserPermissions(HttpServletRequest request) {
+        List<Permission> userPermissions = permissionService.getUserPermissions(request);
+        return ResultUtils.success(userPermissions);
     }
 }
 

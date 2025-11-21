@@ -9,6 +9,7 @@ import com.qzh.backend.model.dto.page.PageUpdateDTO;
 import com.qzh.backend.model.entity.PageInfo;
 import com.qzh.backend.model.vo.PageVO;
 import com.qzh.backend.model.vo.PermissionVO;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -53,5 +54,7 @@ public interface PageService extends IService<PageInfo> {
      * 页面-权限修改接口（覆盖式更新）
      */
     Boolean updatePagePermissions(Long pageId, PageEditPermissionDTO permissionDTO);
+
+    List<PageInfo> getUserPage(HttpServletRequest request);
 }
 

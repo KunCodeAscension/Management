@@ -10,15 +10,13 @@ import com.qzh.backend.model.dto.page.PageCreateDTO;
 import com.qzh.backend.model.dto.page.PageEditPermissionDTO;
 import com.qzh.backend.model.dto.page.PageQueryDTO;
 import com.qzh.backend.model.dto.page.PageUpdateDTO;
-import com.qzh.backend.model.entity.PageInfo;
-import com.qzh.backend.model.entity.PageRelatedPermission;
-import com.qzh.backend.model.entity.Permission;
+import com.qzh.backend.model.entity.*;
 import com.qzh.backend.model.vo.PageVO;
 import com.qzh.backend.model.vo.PermissionVO;
-import com.qzh.backend.service.PageRelatedPermissionService;
-import com.qzh.backend.service.PageService;
-import com.qzh.backend.service.PermissionService;
+import com.qzh.backend.service.*;
+import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +34,12 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
     private final PageRelatedPermissionService pageRelatedPermissionService;
 
     private final PermissionService permissionService;
+
+    private final GetLoginUserUtil getLoginUserUtil;
+
+    private final UserRelatedRoleService userRelatedRoleService;
+
+    private final RoleRelatedPageService roleRelatedPageService;
 
     @Override
     public Page<PageVO> getPageList(PageQueryDTO queryDTO) {
@@ -339,6 +343,43 @@ public class PageServiceImpl extends ServiceImpl<PageMapper, PageInfo> implement
         }
 
         return saveSuccess;
+    }
+
+    @Override
+    public List<PageInfo> getUserPage(HttpServletRequest request) {
+        User loginUser = getLoginUserUtil.getLoginUser(request);
+        Long userId = loginUser.getId();
+        List<UserRelatedRole> userRoleRelations = userRelatedRoleService.list(
+                new LambdaQueryWrapper<UserRelatedRole>()
+                        .eq(UserRelatedRole::getUserId, userId)
+        );
+        if (CollectionUtils.isEmpty(userRoleRelations)) {
+            return Collections.emptyList();
+        }
+        //提取角色ID列表
+        List<Long> roleIds = userRoleRelations.stream()
+                .map(UserRelatedRole::getRoleId)
+                .distinct()
+                .toList();
+        //查询所有角色关联的页面ID
+        List<RoleRelatedPage> rolePageRelations = roleRelatedPageService.list(
+                new LambdaQueryWrapper<RoleRelatedPage>()
+                        .in(RoleRelatedPage::getRoleId, roleIds)
+        );
+        if (CollectionUtils.isEmpty(rolePageRelations)) {
+            return Collections.emptyList();
+        }
+        // 提取页面ID列表
+        List<Long> pageIds = rolePageRelations.stream()
+                .map(RoleRelatedPage::getPageId)
+                .distinct()
+                .collect(Collectors.toList());
+        // 查询完整的页面信息
+        return this.list(
+                new LambdaQueryWrapper<PageInfo>()
+                        .in(PageInfo::getId, pageIds)
+                        .orderByAsc(PageInfo::getOrderNum)
+        );
     }
 }
 

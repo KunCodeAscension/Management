@@ -8,6 +8,7 @@ import com.qzh.backend.model.dto.user.*;
 import com.qzh.backend.model.vo.UserVO;
 import com.qzh.backend.service.UserService;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -71,6 +72,20 @@ public class UserController {
         ThrowUtils.throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Boolean b = userService.deleteUser(id);
         ThrowUtils.throwIf(!b,ErrorCode.SYSTEM_ERROR,"删除用户出错");
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("login")
+    public BaseResponse<Void> login(@RequestBody @Valid UserLoginDTO dto, HttpServletRequest request){
+        ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        userService.login(dto,request);
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("register")
+    public BaseResponse<Void> register(@RequestBody @Valid UserRegisterDTO dto){
+        ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        userService.register(dto);
         return ResultUtils.success(null);
     }
 

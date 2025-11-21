@@ -7,6 +7,7 @@ import com.qzh.backend.model.dto.permission.PermissionQueryDto;
 import com.qzh.backend.model.dto.permission.PermissionUpdateDTO;
 import com.qzh.backend.model.entity.Permission;
 import com.qzh.backend.model.vo.PermissionVO;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -36,4 +37,6 @@ public interface PermissionService extends IService<Permission> {
      * 根据权限ID获取权限详情VO
      */
     PermissionVO getPermissionDetailById(Long id);
+
+    List<Permission> getUserPermissions(HttpServletRequest request);
 }

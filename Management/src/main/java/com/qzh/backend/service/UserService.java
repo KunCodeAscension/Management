@@ -2,11 +2,10 @@ package com.qzh.backend.service;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.qzh.backend.model.dto.user.UserCreateDTO;
-import com.qzh.backend.model.dto.user.UserQueryDTO;
-import com.qzh.backend.model.dto.user.UserUpdateDTO;
+import com.qzh.backend.model.dto.user.*;
 import com.qzh.backend.model.entity.User;
 import com.qzh.backend.model.vo.UserVO;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.List;
 
@@ -58,4 +57,8 @@ public interface UserService extends IService<User> {
      * @param id 用户ID
      */
     Boolean deleteUser(Long id);
+
+    void login(UserLoginDTO dto, HttpServletRequest request);
+
+    void register(UserRegisterDTO dto);
 }

@@ -1,15 +1,15 @@
 package com.qzh.backend.service.Impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.UserMapper;
-import com.qzh.backend.model.dto.user.UserCreateDTO;
-import com.qzh.backend.model.dto.user.UserQueryDTO;
-import com.qzh.backend.model.dto.user.UserUpdateDTO;
+import com.qzh.backend.model.dto.user.*;
 import com.qzh.backend.model.entity.Role;
 import com.qzh.backend.model.entity.User;
 import com.qzh.backend.model.entity.UserRelatedRole;
@@ -19,6 +19,7 @@ import com.qzh.backend.service.RoleService;
 import com.qzh.backend.service.UserRelatedRoleService;
 import com.qzh.backend.service.UserService;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +27,9 @@ import org.springframework.util.DigestUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
+
+import static com.qzh.backend.constants.UserConstant.USER_LOGIN_EXPIRE_TIME;
+import static com.qzh.backend.constants.UserConstant.USER_LOGIN_STATE;
 
 @Service
 @RequiredArgsConstructor
@@ -141,7 +145,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         boolean accountExists = this.count(new LambdaQueryWrapper<User>()
                 .eq(User::getUserAccount, createDTO.getUserAccount())) > 0;
         ThrowUtils.throwIf(accountExists, ErrorCode.PARAMS_ERROR, "用户账号已存在");
-        // 密码加密（使用Spring Security的PasswordEncoder，避免明文存储）
+        // 密码加密
         String encryptedPassword = getEncryptPassword(createDTO.getUserPassword());
         User user = new User();
         user.setUserAccount(createDTO.getUserAccount());
@@ -227,6 +231,55 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public Boolean deleteUser(Long id) {
          return this.removeById(id);
          // TODO 删除角色 权限 关联表 数据
+    }
+
+    @Override
+    public void login(UserLoginDTO dto, HttpServletRequest request) {
+        String userAccount = dto.getUserAccount();
+        String userPassword = dto.getUserPassword();
+        String encryptPassword = getEncryptPassword(userPassword);
+        QueryWrapper<User> queryWrapper =new QueryWrapper<>();
+        queryWrapper.eq("userAccount", userAccount);
+        queryWrapper.eq("userPassword", encryptPassword);
+        User user = this.baseMapper.selectOne(queryWrapper);
+        if(user == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户不存在或密码错误");
+        }
+        if(user.getStatus().equals(UserStatus.Disable.getValue())){
+            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR,"账号被禁用");
+        }
+        long expireTime = System.currentTimeMillis() + 3600 * 1000; // 1小时后过期（单位：毫秒）
+        request.getSession().setAttribute(USER_LOGIN_STATE,user);
+        request.getSession().setAttribute(USER_LOGIN_EXPIRE_TIME, expireTime);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void register(UserRegisterDTO dto) {
+        ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        // userAccount 唯一性判断
+        boolean accountExists = this.count(new LambdaQueryWrapper<User>()
+                .eq(User::getUserAccount, dto.getUserAccount())) > 0;
+        ThrowUtils.throwIf(accountExists, ErrorCode.PARAMS_ERROR, "用户账号已存在");
+        // 密码加密
+        String encryptedPassword = getEncryptPassword(dto.getUserPassword());
+        User user = new User();
+        user.setUserAccount(dto.getUserAccount());
+        user.setUserPassword(encryptedPassword);
+        user.setUserName(dto.getUserName());
+        user.setPhone(dto.getPhone());
+        boolean success = this.save(user);
+        ThrowUtils.throwIf(!success,ErrorCode.SYSTEM_ERROR);
+        Long roleId = dto.getRoleId();
+        Role role = roleService.getById(roleId);
+        if(role == null){
+            throw new BusinessException(ErrorCode.PARAMS_ERROR,"角色不存在");
+        }
+        UserRelatedRole userRelatedRole = new UserRelatedRole();
+        userRelatedRole.setUserId(user.getId());
+        userRelatedRole.setRoleId(roleId);
+        boolean save = userRelatedRoleService.save(userRelatedRole);
+        ThrowUtils.throwIf(!save,ErrorCode.SYSTEM_ERROR);
     }
 
     public String getEncryptPassword(String userPassword) {
