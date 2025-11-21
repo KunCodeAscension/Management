@@ -58,11 +58,9 @@ CREATE TABLE `sys_page` (
                             `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '页面ID',
                             `parentId` BIGINT DEFAULT NULL COMMENT '父页面ID，NULL 或 0 表示顶级',
                             `name` VARCHAR(100) NOT NULL COMMENT '页面/菜单显示名称',
-                            `code` VARCHAR(100) DEFAULT NULL COMMENT '页面唯一标识（可用于权限关联，如 "users:list"）',
                             `path` VARCHAR(200) DEFAULT NULL COMMENT '前端路由路径，如 /users',
                             `component` VARCHAR(255) DEFAULT NULL COMMENT '前端组件路径/名称（前端用于动态路由）',
                             `icon` VARCHAR(100) DEFAULT NULL COMMENT '图标',
-                            `type` TINYINT NOT NULL DEFAULT 1 COMMENT '类型:1=菜单/页面,2=页面内操作(Button)或子权限',
                             `orderNum` INT NOT NULL DEFAULT 0 COMMENT '排序值，越大越靠前',
                             `visible` TINYINT NOT NULL DEFAULT 1 COMMENT '是否可见（菜单展示）:1=显示,0=隐藏',
                             `meta` JSON DEFAULT NULL COMMENT '扩展字段，存放额外信息（如权限提示、layout 等）',
@@ -70,9 +68,7 @@ CREATE TABLE `sys_page` (
                             `updateTime` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                             `createBy` BIGINT DEFAULT NULL COMMENT '创建人ID',
                             PRIMARY KEY (`id`),
-                            UNIQUE KEY `uk_page_code` (`code`),
-                            KEY `idx_parent` (`parentId`),
-                            KEY `idx_type` (`type`)
+                            KEY `idx_parent` (`parentId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='页面/菜单表';
 
 CREATE TABLE `sys_role_page` (
@@ -101,3 +97,5 @@ CREATE TABLE `sys_page_permission` (
                                        KEY `idx_page` (`pageId`),
                                        KEY `idx_permission` (`permissionId`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='页面按钮/动作与权限表';
+
+ALTER TABLE `sys_user` ADD COLUMN `email` varchar(100) NOT NULL COMMENT '用户邮箱' AFTER `phone`
