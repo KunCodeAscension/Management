@@ -60,7 +60,7 @@ public class AuthCheckAspect {
         String requiredInterfaceName = authCheck.interfaceName();
         if (requiredInterfaceName.isBlank()) {
             log.error("权限校验失败：@AuthCheck 注解的 interfaceName 不能为空");
-            throw new BusinessException(ErrorCode.PARAMS_ERROR, "权限校验失败：接口名未指定");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "权限校验失败：接口名未指定");
         }
         // 查询用户拥有的所有权限名称集合（用户→角色→权限）
         Set<String> userPermissionNames = getUserPermissionNames(userId);
@@ -68,7 +68,7 @@ public class AuthCheckAspect {
         // 校验用户是否拥有目标接口权限
         if (!userPermissionNames.contains(requiredInterfaceName)) {
             log.warn("权限校验失败：用户ID={} 缺少接口权限={}", userId, requiredInterfaceName);
-            throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "无权限访问该接口");
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该接口");
         }
         return joinPoint.proceed();
     }
