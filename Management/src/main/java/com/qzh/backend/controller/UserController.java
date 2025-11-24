@@ -9,6 +9,7 @@ import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.model.dto.user.*;
 import com.qzh.backend.model.vo.UserVO;
 import com.qzh.backend.service.UserService;
+import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,8 @@ import static com.qzh.backend.constants.ModuleConstant.USER_MODULE;
 public class UserController {
 
     private final UserService userService;
+
+    private final GetLoginUserUtil getLoginUserUtil;
 
     @GetMapping("/list")
 //    @AuthCheck(interfaceName = USER_LIST_GET)
@@ -104,6 +107,14 @@ public class UserController {
         ThrowUtils.throwIf(dto == null, ErrorCode.PARAMS_ERROR);
         userService.register(dto);
         return ResultUtils.success(null);
+    }
+
+    /**
+     * 获取当前登录的用户信息
+     */
+    @GetMapping("getLoginUser")
+    public BaseResponse<UserVO> getLoginUser(HttpServletRequest request){
+        return ResultUtils.success(UserVO.toUserVO(getLoginUserUtil.getLoginUser(request)));
     }
 
 }
