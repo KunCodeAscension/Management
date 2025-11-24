@@ -5,7 +5,6 @@ import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
 import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
-import com.qzh.backend.mapper.StoreMapper;
 import com.qzh.backend.model.dto.store.StoreUpdateDTO;
 import com.qzh.backend.model.entity.Store;
 import com.qzh.backend.model.entity.User;
