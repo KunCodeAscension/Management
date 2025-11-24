@@ -52,3 +52,13 @@ knife4j:
     enable-footer: true
     enable-document-manage: true
 
+store:
+  init:
+    storeName: "qzh的便利店"
+    managerId: 1991058483334778881
+    contactName: "qzh"
+    contactPhone: "13800138000"
+    contactEmail: "qzh@example.com"
+    address: "北京市朝阳区建国路88号"
+    longitude: 116.481028
+    latitude: 39.921983
