@@ -46,9 +46,9 @@ public class AutoReplenishment {
     private final AmountOrderService amountOrderService;
 
     /**
-     * 定时任务自动补货低于预警值的商品
+     * 定时任务自动补货低于预警值的商品 每五分钟
      */
-    @Scheduled(cron = "0/5 * * * * *")
+    @Scheduled(cron = "0 0/5 * * * *")
     public void task() {
         log.info("开始执行自动补货任务...");
         List<Inventory> allInventories = inventoryService.list(Wrappers.lambdaQuery());
