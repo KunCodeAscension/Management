@@ -9,6 +9,7 @@ import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.InventoryMapper;
 import com.qzh.backend.model.dto.product.InventoryQueryDTO;
+import com.qzh.backend.model.dto.product.InventoryUpdateDTO;
 import com.qzh.backend.model.entity.Inventory;
 import com.qzh.backend.model.entity.InventoryDetail;
 import com.qzh.backend.model.entity.PurchaseOrder;
@@ -147,6 +148,51 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         voPage.setCurrent(inventoryPage.getCurrent());
         voPage.setPages(inventoryPage.getPages());
         return voPage;
+    }
+
+    @Override
+    public InventoryVO getInventoryVOById(Long id) {
+        ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
+        // 根据ID查询库存主表记录
+        Inventory inventory = this.getById(id);
+        if (inventory == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "库存记录不存在");
+        }
+        // 查询该商品在该门店的所有库存明细记录
+        LambdaQueryWrapper<InventoryDetail> detailQueryWrapper = Wrappers.lambdaQuery();
+        detailQueryWrapper.eq(InventoryDetail::getProductId, inventory.getProductId())
+                .eq(InventoryDetail::getOrderId, inventory.getStoreId()); // 假设 orderId 存储门店ID
+        List<InventoryDetail> detailList = inventoryDetailService.list(detailQueryWrapper);
+
+        // 计算库存数量
+        Map<String, Integer> quantityMap;
+        if (CollectionUtils.isEmpty(detailList)) {
+            quantityMap = Collections.emptyMap();
+        } else {
+            quantityMap = calculateQuantityByProductStore(detailList);
+        }
+        // 组装VO对象
+        InventoryVO vo = new InventoryVO(inventory);
+        String key = inventory.getProductId() + "_" + inventory.getStoreId();
+        vo.setQuantity(quantityMap.getOrDefault(key, null));
+        return vo;
+    }
+
+    @Override
+    public void updateInventory(InventoryUpdateDTO updateDTO) {
+        Inventory inventory = this.getById(updateDTO.getId());
+        if (inventory == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "库存记录不存在");
+        }
+        inventory.setProductName(updateDTO.getProductName());
+        inventory.setProductDescription(updateDTO.getProductDescription());
+        inventory.setProductUrl(updateDTO.getProductUrl());
+        inventory.setProductPrice(updateDTO.getProductPrice());
+        inventory.setWarningThreshold(updateDTO.getWarningThreshold());
+        boolean updateSuccess = this.updateById(inventory);
+        if (!updateSuccess) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新库存信息失败");
+        }
     }
 
     private Map<String, Integer> calculateQuantityByProductStore(List<InventoryDetail> detailList) {
