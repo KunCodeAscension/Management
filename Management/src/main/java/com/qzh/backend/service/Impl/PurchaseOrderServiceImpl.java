@@ -2,7 +2,6 @@ package com.qzh.backend.service.Impl;
 
 import cn.hutool.core.collection.CollUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -59,7 +58,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         ThrowUtils.throwIf(quantity<=0,ErrorCode.SYSTEM_ERROR,"采购数量不能小于等于0");
         Product product = productService.getById(createDTO.getProductId());
         // 判断商品是否存在或者商品是否下架
-        if (product == null || product.getStatus().equals(ProductStatus.TAKEDOWN.getValue())) {
+        if (product == null || product.getStatus().equals(ProductStatusEnum.TAKEDOWN.getValue())) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品不存在: " + createDTO.getProductId());
         }
         // 采购价格
@@ -78,7 +77,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         purchaseOrder.setProductPrice(price);
         purchaseOrder.setProductQuantity(createDTO.getQuantity());
         purchaseOrder.setTotalAmount(totalAmount);
-        purchaseOrder.setStatus(PurchaseOrderStatus.PENDING.getValue()); // 0-待发货
+        purchaseOrder.setStatus(PurchaseOrderStatusEnum.PENDING.getValue()); // 0-待发货
         purchaseOrder.setType(PurchaseOrderTypeEnum.MANUAL.getValue());  // 0-手动发起
         // 购买人
         purchaseOrder.setCreateBy(loginUser.getId());
@@ -219,5 +218,31 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
             vo.setTradeNo(amountOrder.getTradeNo());
         }
         return vo;
+    }
+
+    @Override
+    public void shipPurchaseOrder(Long orderId,HttpServletRequest request) {
+        // 根据 amountOrderId 查询金额单，确认其存在
+        LambdaQueryWrapper<AmountOrder> amountOrderQueryWrapper = Wrappers.lambdaQuery(AmountOrder.class)
+                .eq(AmountOrder::getOrderId, orderId);
+        AmountOrder amountOrder = amountOrderService.getOne(amountOrderQueryWrapper);
+        if (amountOrder == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未找到编号为 " + orderId + " 的金额单");
+        }
+        User loginUser = getLoginUserUtil.getLoginUser(request);
+        // 如果该订单为登录用户 那么payee收款人为供应商
+        if(!amountOrder.getPayeeId().equals(loginUser.getId())){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "该订单不属于你，禁止操作");
+        }
+        // 查询金额单状态 如果是已支付允许发货
+        if(!amountOrder.getStatus().equals(OrderStatusEnum.PAID.getValue())){
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "订单未被门店支付，禁止操作");
+        }
+        // 采购单
+        PurchaseOrder purchaseOrder = this.getById(orderId);
+        // 设置状态为已发货
+        purchaseOrder.setStatus(PurchaseOrderStatusEnum.SHIPPED.getValue());
+        boolean b = this.updateById(purchaseOrder);
+        ThrowUtils.throwIf(!b,ErrorCode.SYSTEM_ERROR,"状态更新失败");
     }
 }

@@ -29,7 +29,7 @@ public class InventoryDetail implements Serializable {
     /**
      * 订单Id
      */
-    private String orderId;
+    private Long orderId;
 
     /**
      * 类型（0-出库，1-入库）

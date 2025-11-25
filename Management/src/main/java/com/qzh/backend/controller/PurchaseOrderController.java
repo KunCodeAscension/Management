@@ -46,4 +46,13 @@ public class PurchaseOrderController {
         PurchaseOrderListVO orderVO = purchaseOrderService.getPurchaseOrderById(id);
         return ResultUtils.success(orderVO);
     }
+
+    /**
+     * 供应商设置订单为已发货
+     */
+    @PostMapping("/ship/{id}")
+    public BaseResponse<Void> shipPurchaseOrder(@PathVariable("id") Long orderId,HttpServletRequest request) {
+        purchaseOrderService.shipPurchaseOrder(orderId,request);
+        return ResultUtils.success(null);
+    }
 }

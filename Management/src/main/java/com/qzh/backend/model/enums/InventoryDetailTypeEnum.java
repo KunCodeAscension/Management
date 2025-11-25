@@ -4,37 +4,25 @@ import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
 
 @Getter
-public enum PurchaseOrderStatus {
+public enum InventoryDetailTypeEnum {
 
-    /**
-     * 待发货
-     */
-    PENDING("待发货",0),
-
-    /**
-     * 已发货
-     */
-    SHIPPED("已发货",1),
-
-    /**
-     * 已入库
-     */
-    STORED("已入库",2);
+    TAKEIN("入库", 1),
+    TAKEOUT("出库", 0);
 
     private final String text;
     private final int value;
 
-    PurchaseOrderStatus(String text, int value) {
+    InventoryDetailTypeEnum(String text, int value) {
         this.text = text;
         this.value = value;
     }
 
 
-    public static PurchaseOrderStatus getEnumByValue(Integer value) {
+    public static InventoryDetailTypeEnum getEnumByValue(Integer value) {
         if (ObjUtil.isEmpty(value)) {
             return null;
         }
-        for (PurchaseOrderStatus pictureReviewStatusEnum : PurchaseOrderStatus.values()) {
+        for (InventoryDetailTypeEnum pictureReviewStatusEnum : InventoryDetailTypeEnum.values()) {
             if (pictureReviewStatusEnum.value == value) {
                 return pictureReviewStatusEnum;
             }

@@ -4,7 +4,7 @@ import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.UserMapper;
 import com.qzh.backend.model.entity.User;
-import com.qzh.backend.model.enums.UserStatus;
+import com.qzh.backend.model.enums.UserStatusEnum;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -41,7 +41,7 @@ public class LoginInterceptor implements HandlerInterceptor {
         if (currentUser == null) {
             throw new BusinessException(ErrorCode.NOT_LOGIN_ERROR, "用户未登录或不存在");
         }
-        if (currentUser.getStatus().equals(UserStatus.Disable.getValue())) {
+        if (currentUser.getStatus().equals(UserStatusEnum.Disable.getValue())) {
             throw new BusinessException(ErrorCode.FORBIDDEN_ERROR, "账号被禁用");
         }
         // 校验登录状态是否过期

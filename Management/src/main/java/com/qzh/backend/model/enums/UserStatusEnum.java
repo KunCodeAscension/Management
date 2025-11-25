@@ -4,25 +4,25 @@ import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
 
 @Getter
-public enum ProductStatus {
+public enum UserStatusEnum {
 
-    PUTON("上架", 1),
-    TAKEDOWN("下架", 0);
+    NORMAL("通过", 1),
+    Disable("停用", 0);
 
     private final String text;
     private final int value;
 
-    ProductStatus(String text, int value) {
+    UserStatusEnum(String text, int value) {
         this.text = text;
         this.value = value;
     }
 
 
-    public static ProductStatus getEnumByValue(Integer value) {
+    public static UserStatusEnum getEnumByValue(Integer value) {
         if (ObjUtil.isEmpty(value)) {
             return null;
         }
-        for (ProductStatus pictureReviewStatusEnum : ProductStatus.values()) {
+        for (UserStatusEnum pictureReviewStatusEnum : UserStatusEnum.values()) {
             if (pictureReviewStatusEnum.value == value) {
                 return pictureReviewStatusEnum;
             }

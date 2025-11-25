@@ -13,7 +13,7 @@ import com.qzh.backend.model.dto.user.*;
 import com.qzh.backend.model.entity.Role;
 import com.qzh.backend.model.entity.User;
 import com.qzh.backend.model.entity.UserRelatedRole;
-import com.qzh.backend.model.enums.UserStatus;
+import com.qzh.backend.model.enums.UserStatusEnum;
 import com.qzh.backend.model.vo.UserVO;
 import com.qzh.backend.service.RoleService;
 import com.qzh.backend.service.UserRelatedRoleService;
@@ -155,7 +155,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUserPassword(encryptedPassword);
         user.setUserName(createDTO.getUserName());
         user.setPhone(createDTO.getPhone());
-        user.setStatus(UserStatus.getEnumByValue(createDTO.getStatus()).getValue());
+        user.setStatus(UserStatusEnum.getEnumByValue(createDTO.getStatus()).getValue());
         boolean success = this.save(user);
         ThrowUtils.throwIf(!success,ErrorCode.SYSTEM_ERROR);
         return user.getId();
@@ -169,7 +169,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         ThrowUtils.throwIf(user == null, ErrorCode.NOT_FOUND_ERROR,"用户不存在");
         user.setUserName(updateDTO.getUserName());
         user.setPhone(updateDTO.getPhone());
-        user.setStatus(UserStatus.getEnumByValue(updateDTO.getStatus()).getValue());
+        user.setStatus(UserStatusEnum.getEnumByValue(updateDTO.getStatus()).getValue());
         User loginUser = getLoginUserUtil.getLoginUser(request);
         // 处理角色关联（先删后加，覆盖式更新）
         List<Long> newRoleIds = updateDTO.getRoleIds();
@@ -247,7 +247,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if(user == null){
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"用户不存在或密码错误");
         }
-        if(user.getStatus().equals(UserStatus.Disable.getValue())){
+        if(user.getStatus().equals(UserStatusEnum.Disable.getValue())){
             throw new BusinessException(ErrorCode.FORBIDDEN_ERROR,"账号被禁用");
         }
         long expireTime = System.currentTimeMillis() + 3600 * 1000; // 1小时后过期（单位：毫秒）
