@@ -21,6 +21,11 @@ public class AppGlobalConfig {
      */
     private String currentStoreName;
 
+    /**
+     * 店长ID
+     */
+    private Long managerId;
+
     // 你可以在这里添加其他全局配置，例如：
     // private String appVersion;
     // private String apiBaseUrl;

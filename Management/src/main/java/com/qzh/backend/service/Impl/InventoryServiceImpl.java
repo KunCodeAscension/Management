@@ -109,37 +109,26 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         if (CollectionUtils.isEmpty(inventoryPage.getRecords())) {
             return new Page<>(current, size, 0);
         }
-        // 提取所有 productId + storeId 组合（唯一标识一个库存记录）
-        List<Map<String, Long>> productStoreCombinations = inventoryPage.getRecords().stream()
-                .map(inventory -> {
-                    Map<String, Long> map = new HashMap<>();
-                    map.put("productId", inventory.getProductId());
-                    map.put("storeId", inventory.getStoreId());
-                    return map;
-                })
+        List<Long> productIds = inventoryPage.getRecords().stream()
+                .map(Inventory::getProductId)
+                .distinct()
                 .toList();
-        // 批量查询库存明细表中这些商品的所有变动记录
         List<InventoryDetail> detailList = inventoryDetailService.list(
                 Wrappers.lambdaQuery(InventoryDetail.class)
-                        .in(detail -> productStoreCombinations.stream()
-                                .anyMatch(comb -> comb.get("productId").equals(detail.getProductId())
-                                        && comb.get("storeId").equals(detail.getOrderId()))
-                        )
+                        .in(InventoryDetail::getProductId, productIds)
         );
-
-        // productId + storeId 分组，计算每个组合的库存数量
         Map<String, Integer> quantityMap = calculateQuantityByProductStore(detailList);
-        // 组装VO（填充库存数量）
         List<InventoryVO> voList = inventoryPage.getRecords().stream()
                 .map(inventory -> {
                     InventoryVO vo = new InventoryVO(inventory);
-                    // 构建 key：productId_storeId
-                    String key = inventory.getProductId() + "_" + inventory.getStoreId();
+                    // 构建 key：仅使用 productId
+                    String key = String.valueOf(inventory.getProductId());
                     // 填充数量
-                    vo.setQuantity(quantityMap.getOrDefault(key, null));
+                    vo.setQuantity(quantityMap.getOrDefault(key, null)); // 没有数量时默认为0
                     return vo;
                 })
                 .collect(Collectors.toList());
+
         // 构建并返回VO分页对象
         Page<InventoryVO> voPage = new Page<>();
         voPage.setRecords(voList);
@@ -152,29 +141,23 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
 
     @Override
     public InventoryVO getInventoryVOById(Long id) {
-        ThrowUtils.throwIf(id == null || id <= 0,ErrorCode.PARAMS_ERROR);
+        ThrowUtils.throwIf(id == null || id <= 0, ErrorCode.PARAMS_ERROR);
         // 根据ID查询库存主表记录
         Inventory inventory = this.getById(id);
         if (inventory == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "库存记录不存在");
         }
-        // 查询该商品在该门店的所有库存明细记录
+        // 仅根据 productId 查询所有相关的库存明细记录
         LambdaQueryWrapper<InventoryDetail> detailQueryWrapper = Wrappers.lambdaQuery();
-        detailQueryWrapper.eq(InventoryDetail::getProductId, inventory.getProductId())
-                .eq(InventoryDetail::getOrderId, inventory.getStoreId()); // 假设 orderId 存储门店ID
+        detailQueryWrapper.eq(InventoryDetail::getProductId, inventory.getProductId());
         List<InventoryDetail> detailList = inventoryDetailService.list(detailQueryWrapper);
-
         // 计算库存数量
-        Map<String, Integer> quantityMap;
-        if (CollectionUtils.isEmpty(detailList)) {
-            quantityMap = Collections.emptyMap();
-        } else {
-            quantityMap = calculateQuantityByProductStore(detailList);
-        }
+        Map<String, Integer> quantityMap = calculateQuantityByProductStore(detailList);
         // 组装VO对象
         InventoryVO vo = new InventoryVO(inventory);
-        String key = inventory.getProductId() + "_" + inventory.getStoreId();
-        vo.setQuantity(quantityMap.getOrDefault(key, null));
+        // 构建 key：仅使用 productId
+        String key = String.valueOf(inventory.getProductId());
+        vo.setQuantity(quantityMap.getOrDefault(key, 0)); // 没有数量时默认为0
         return vo;
     }
 
@@ -199,11 +182,10 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         if (CollectionUtils.isEmpty(detailList)) {
             return Collections.emptyMap();
         }
-        // 分组计算：key = productId_storeId，value = 总数量
+        // 分组计算：key = productId，value = 总数量
         return detailList.stream()
                 .collect(Collectors.groupingBy(
-                        // 分组key：productId + "_" + storeId（假设 orderId 存储门店ID）
-                        detail -> detail.getProductId() + "_" + detail.getOrderId(),
+                        detail -> String.valueOf(detail.getProductId()),
                         Collectors.summingInt(detail -> {
                             Integer quantity = detail.getProductQuantity();
                             switch (detail.getOrderType()) {

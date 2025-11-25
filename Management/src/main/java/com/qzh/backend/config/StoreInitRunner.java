@@ -43,6 +43,7 @@ public class StoreInitRunner implements ApplicationRunner {
         }
         appGlobalConfig.setCurrentStoreId(configStore.getId());
         appGlobalConfig.setCurrentStoreName(configStore.getStoreName());
+        appGlobalConfig.setManagerId(configStore.getManagerId());
         log.info("===== 单门店初始化任务执行完成 =====");
         log.info("门店ID：{}，门店名：{}", appGlobalConfig.getCurrentStoreId(),appGlobalConfig.getCurrentStoreName());
     }
