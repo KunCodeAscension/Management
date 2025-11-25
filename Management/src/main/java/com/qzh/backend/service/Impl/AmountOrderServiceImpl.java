@@ -11,7 +11,7 @@ import com.qzh.backend.model.entity.AmountOrder;
 import com.qzh.backend.model.entity.PurchaseOrder;
 import com.qzh.backend.model.entity.PurchaseReturn;
 import com.qzh.backend.model.entity.User;
-import com.qzh.backend.model.enums.OrderStatusEnum;
+import com.qzh.backend.model.enums.PayStatusEnum;
 import com.qzh.backend.model.vo.AmountOrderDetailVO;
 import com.qzh.backend.service.AmountOrderService;
 import com.qzh.backend.service.PurchaseOrderService;
@@ -60,7 +60,7 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"该订单不由你支付");
         }
         // 设置订单状态为已支付
-        amountOrder.setStatus(OrderStatusEnum.PAID.getValue());
+        amountOrder.setStatus(PayStatusEnum.PAID.getValue());
         boolean b = this.updateById(amountOrder);
         ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR,"订单支付失败");
     }
@@ -76,7 +76,7 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
             throw new BusinessException(ErrorCode.PARAMS_ERROR,"该订单不由你支付");
         }
         // 设置订单状态为已支付
-        amountOrder.setStatus(OrderStatusEnum.CANCELLED.getValue());
+        amountOrder.setStatus(PayStatusEnum.CANCELLED.getValue());
         boolean b = this.updateById(amountOrder);
         ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR,"订单取消失败");
     }

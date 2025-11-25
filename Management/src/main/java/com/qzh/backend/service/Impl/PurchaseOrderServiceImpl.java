@@ -91,13 +91,13 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         amountOrder.setPayeeId(product.getId());  // 收款人设置为产品供应商
         amountOrder.setAmount(totalAmount);
         amountOrder.setStoreId(appGlobalConfig.getCurrentStoreId());  // 设置门店ID
-        amountOrder.setStatus(OrderStatusEnum.PENDING_PAYMENT.getValue()); // 0-待支付
+        amountOrder.setStatus(PayStatusEnum.PENDING_PAYMENT.getValue()); // 0-待支付
         amountOrder.setPayType(PayTypeEnum.ALIPAY.getValue()); // 目前仅支持支付宝沙箱
         amountOrder.setCreateBy(loginUser.getId());
         boolean amountOrderSaved = amountOrderService.save(amountOrder);
         ThrowUtils.throwIf(!amountOrderSaved,ErrorCode.SYSTEM_ERROR,"采购订单创建失败");
         // 返回付款单ID
-        return amountOrder.getId();
+        return purchaseOrder.getId();
     }
 
     @Override
@@ -235,7 +235,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "该订单不属于你，禁止操作");
         }
         // 查询金额单状态 如果是已支付允许发货
-        if(!amountOrder.getStatus().equals(OrderStatusEnum.PAID.getValue())){
+        if(!amountOrder.getStatus().equals(PayStatusEnum.PAID.getValue())){
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "订单未被门店支付，禁止操作");
         }
         // 采购单

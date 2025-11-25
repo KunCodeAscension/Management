@@ -9,12 +9,16 @@ import com.qzh.backend.model.entity.AmountOrder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
 public class AmountOrderQueryDTO extends PageRequest implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     /**
      * 门店ID

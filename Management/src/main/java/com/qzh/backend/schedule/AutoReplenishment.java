@@ -6,7 +6,7 @@ import com.qzh.backend.config.AppGlobalConfig;
 import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.model.entity.*;
-import com.qzh.backend.model.enums.OrderStatusEnum;
+import com.qzh.backend.model.enums.PayStatusEnum;
 import com.qzh.backend.model.enums.OrderTypeEnum;
 import com.qzh.backend.model.enums.PurchaseOrderStatusEnum;
 import com.qzh.backend.model.enums.PurchaseOrderTypeEnum;
@@ -149,7 +149,7 @@ public class AutoReplenishment {
         amountOrder.setPayerId(appGlobalConfig.getManagerId());
         amountOrder.setPayeeId(product.getSupplierId());
         amountOrder.setAmount(purchaseOrder.getTotalAmount());
-        amountOrder.setStatus(OrderStatusEnum.PENDING_PAYMENT.getValue());
+        amountOrder.setStatus(PayStatusEnum.PENDING_PAYMENT.getValue());
         amountOrder.setCreateBy(appGlobalConfig.getManagerId());
         boolean amountSaved = amountOrderService.save(amountOrder);
         if (!amountSaved) {

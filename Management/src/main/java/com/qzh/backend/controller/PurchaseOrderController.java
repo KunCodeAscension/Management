@@ -25,8 +25,8 @@ public class PurchaseOrderController {
      */
     @PostMapping
     public BaseResponse<Long> createPurchaseOrder(@Valid @RequestBody PurchaseOrderCreateDTO createDTO, HttpServletRequest request) {
-        Long orderId = purchaseOrderService.createPurchaseOrder(createDTO,request);
-        return ResultUtils.success(orderId);
+        Long purchaseOrderId = purchaseOrderService.createPurchaseOrder(createDTO,request);
+        return ResultUtils.success(purchaseOrderId);
     }
 
     /**

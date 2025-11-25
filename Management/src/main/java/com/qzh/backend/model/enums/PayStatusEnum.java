@@ -4,7 +4,7 @@ import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
 
 @Getter
-public enum OrderStatusEnum {
+public enum PayStatusEnum {
 
     /**
      * 待支付
@@ -24,7 +24,7 @@ public enum OrderStatusEnum {
     private final String text;
     private final int value;
 
-    OrderStatusEnum(String text, int value) {
+    PayStatusEnum(String text, int value) {
         this.text = text;
         this.value = value;
     }
@@ -35,11 +35,11 @@ public enum OrderStatusEnum {
      * @param value 数据库中存储的数值
      * @return 对应的枚举对象，若未找到或输入为空则返回 null
      */
-    public static OrderStatusEnum getEnumByValue(Integer value) {
+    public static PayStatusEnum getEnumByValue(Integer value) {
         if (ObjUtil.isEmpty(value)) {
             return null;
         }
-        for (OrderStatusEnum statusEnum : OrderStatusEnum.values()) {
+        for (PayStatusEnum statusEnum : PayStatusEnum.values()) {
             if (statusEnum.value == value) {
                 return statusEnum;
             }
