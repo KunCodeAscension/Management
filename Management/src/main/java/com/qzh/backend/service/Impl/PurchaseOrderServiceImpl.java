@@ -224,7 +224,8 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
     public void shipPurchaseOrder(Long orderId,HttpServletRequest request) {
         // 根据 amountOrderId 查询金额单，确认其存在
         LambdaQueryWrapper<AmountOrder> amountOrderQueryWrapper = Wrappers.lambdaQuery(AmountOrder.class)
-                .eq(AmountOrder::getOrderId, orderId);
+                .eq(AmountOrder::getOrderId, orderId)
+                .eq(AmountOrder::getType,OrderTypeEnum.PURCHASE.getValue());
         AmountOrder amountOrder = amountOrderService.getOne(amountOrderQueryWrapper);
         if (amountOrder == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "未找到编号为 " + orderId + " 的金额单");

@@ -22,4 +22,7 @@ public class PurchaseReturnCreateDTO {
     @NotNull(message = "采退数量不能为空")
     @Min(value = 1, message = "采退数量必须大于0")
     private Integer returnQuantity;
+
+    @NotNull(message = "仓库ID不能为空")
+    private Long warehouseId;
 }

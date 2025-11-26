@@ -13,4 +13,5 @@ public interface PurchaseReturnService extends IService<PurchaseReturn> {
      */
     Long createPurchaseReturn(PurchaseReturnCreateDTO createDTO, HttpServletRequest request);
 
+    void confirmPurchaseReturn(Long returnId, HttpServletRequest request);
 }
