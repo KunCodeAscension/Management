@@ -1,55 +1,47 @@
 package com.qzh.backend.model.entity;
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.LocalDateTime;
 import java.util.Date;
 
 /**
- * 库存明细表实体
- * 对应数据库表：sys_inventory_detail
+ * 仓库实体类
+ * 对应表名：sys_warehouse
  */
 @Data
-@TableName("sys_inventory_detail")
-public class InventoryDetail implements Serializable {
+@TableName("sys_warehouse")
+public class Warehouse implements Serializable {
 
     @Serial
     @TableField(exist = false)
     private static final long serialVersionUID = 1L;
 
     /**
-     * 商品ID
+     * 仓库唯一ID
      */
-    private Long productId;
+    @TableId(type = IdType.ASSIGN_ID)
+    private Long id;
 
     /**
-     * 订单Id
+     * 仓库名称
      */
-    private Long orderId;
+    private String name;
 
     /**
-     * 类型（0-出库，1-入库）
+     * 详细地址
      */
-    private Integer type;
+    private String address;
 
     /**
-     * 类型（0-采购，1-采退，2-销售，3-销退）
+     * 仓库描述
      */
-    private Integer orderType;
-
-    /**
-     * 仓库ID
-     */
-    private Long warehouseId;
-
-    /**
-     * 入库或出库数量
-     */
-    private Integer productQuantity;
+    private String description;
 
     /**
      * 创建人ID

@@ -87,7 +87,7 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
         AmountOrder amountOrder = this.getById(id);
         ThrowUtils.throwIf(amountOrder == null, ErrorCode.NOT_FOUND_ERROR,"订单不存在");
         User loginUser = getLoginUserUtil.getLoginUser(request);
-        if(!loginUser.getId().equals(amountOrder.getPayerId()) || !loginUser.getId().equals(amountOrder.getPayeeId())){
+        if(!loginUser.getId().equals(amountOrder.getPayerId()) && !loginUser.getId().equals(amountOrder.getPayeeId())){
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR,"该订单不属于你，无法查看");
         }
         AmountOrderDetailVO amountOrderDetailVO = new AmountOrderDetailVO();
@@ -110,6 +110,7 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
                 amountOrderDetailVO.setProductQuantity(purchaseOrder.getProductQuantity());
                 amountOrderDetailVO.setProductUrl(purchaseOrder.getProductUrl());
                 amountOrderDetailVO.setPurchaseOrderStatus(purchaseOrder.getStatus());
+                amountOrderDetailVO.setOrderId(orderId);
                 break;
             case 1:
                 PurchaseReturn purchaseReturn = purchaseReturnService.getById(orderId);
@@ -120,6 +121,7 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
                 amountOrderDetailVO.setProductQuantity(purchaseReturn.getProductQuantity());
                 amountOrderDetailVO.setProductUrl(purchaseReturn.getProductUrl());
                 amountOrderDetailVO.setPurchaseOrderStatus(purchaseReturn.getStatus());
+                amountOrderDetailVO.setOrderId(orderId);
                 break;
             case 2:
                 // TODO

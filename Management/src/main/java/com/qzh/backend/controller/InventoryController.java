@@ -5,6 +5,7 @@ import com.qzh.backend.common.BaseResponse;
 import com.qzh.backend.common.ResultUtils;
 import com.qzh.backend.model.dto.product.InventoryQueryDTO;
 import com.qzh.backend.model.dto.product.InventoryUpdateDTO;
+import com.qzh.backend.model.dto.product.MultiWarehouseStockInDTO;
 import com.qzh.backend.model.vo.InventoryVO;
 import com.qzh.backend.service.InventoryService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,15 +20,6 @@ import javax.validation.Valid;
 public class InventoryController {
 
     private final InventoryService inventoryService;
-
-    /**
-     * 门店操作员设置为入库
-     */
-    @PostMapping("/stock-in/{id}")
-    public BaseResponse<Void> stockIn(@PathVariable("id") Long PucchaseOrderId, HttpServletRequest request) {
-        inventoryService.stockIn(PucchaseOrderId,request);
-        return ResultUtils.success(null);
-    }
 
     /**
      * 分页查询入库信息
@@ -53,6 +45,12 @@ public class InventoryController {
     @PostMapping("/update")
     public BaseResponse<Void> updateInventory(@Valid @RequestBody InventoryUpdateDTO updateDTO) {
         inventoryService.updateInventory(updateDTO);
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("/stock-in")
+    public BaseResponse<Void> stockIn(@Valid @RequestBody MultiWarehouseStockInDTO stockInDTO, HttpServletRequest request) {
+        inventoryService.stockInNew(stockInDTO, request);
         return ResultUtils.success(null);
     }
 

@@ -10,6 +10,7 @@ import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.InventoryMapper;
 import com.qzh.backend.model.dto.product.InventoryQueryDTO;
 import com.qzh.backend.model.dto.product.InventoryUpdateDTO;
+import com.qzh.backend.model.dto.product.MultiWarehouseStockInDTO;
 import com.qzh.backend.model.entity.Inventory;
 import com.qzh.backend.model.entity.InventoryDetail;
 import com.qzh.backend.model.entity.PurchaseOrder;
@@ -21,6 +22,7 @@ import com.qzh.backend.model.vo.InventoryVO;
 import com.qzh.backend.service.InventoryDetailService;
 import com.qzh.backend.service.InventoryService;
 import com.qzh.backend.service.PurchaseOrderService;
+import com.qzh.backend.service.WarehouseService;
 import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -45,56 +46,7 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
 
     private final InventoryDetailService inventoryDetailService;
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void stockIn(Long purchaseOrderId, HttpServletRequest request) {
-        // 查询采购订单并校验状态
-        PurchaseOrder purchaseOrder = purchaseOrderService.getById(purchaseOrderId);
-        if (purchaseOrder == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "采购订单不存在");
-        }
-        if (!purchaseOrder.getStatus().equals(PurchaseOrderStatusEnum.SHIPPED.getValue())) {
-            throw new BusinessException(ErrorCode.OPERATION_ERROR, "只有已发货的订单才能进行入库操作");
-        }
-        User loginUser = getLoginUserUtil.getLoginUser(request);
-        // 更新采购订单状态为“已入库”
-        purchaseOrder.setStatus(PurchaseOrderStatusEnum.STORED.getValue());
-        boolean b = purchaseOrderService.updateById(purchaseOrder);
-        ThrowUtils.throwIf(!b,ErrorCode.SYSTEM_ERROR,"采购信息更新失败");
-
-        InventoryDetail detail = new InventoryDetail();
-        detail.setProductId(purchaseOrder.getProductId());
-        detail.setOrderId(purchaseOrderId);
-        detail.setType(InventoryDetailTypeEnum.TAKEIN.getValue());    // 设置类型为入库
-        detail.setOrderType(OrderTypeEnum.PURCHASE.getValue());     // 设置订单类型为采购
-        detail.setProductQuantity(purchaseOrder.getProductQuantity());  // 设置数量
-        detail.setCreateBy(loginUser.getId());
-        boolean save = inventoryDetailService.save(detail);
-        ThrowUtils.throwIf(!save,ErrorCode.SYSTEM_ERROR,"库存明细新增失败");
-
-        // 更新库存表
-        LambdaQueryWrapper<Inventory> queryWrapper = Wrappers.lambdaQuery();
-        queryWrapper.eq(Inventory::getProductId, purchaseOrder.getProductId())
-                .eq(Inventory::getStoreId, purchaseOrder.getStoreId());
-        Inventory inventory = this.getOne(queryWrapper);
-
-        if (inventory == null) {
-            inventory = new Inventory();
-            inventory.setProductId(purchaseOrder.getProductId());
-            inventory.setProductName(purchaseOrder.getProductName());
-            inventory.setProductDescription(purchaseOrder.getProductDescription());
-            inventory.setProductUrl(purchaseOrder.getProductUrl());
-            // 出售价格默认比进货价多1
-            inventory.setProductPrice(purchaseOrder.getProductPrice().add(new BigDecimal(1)));
-            inventory.setStoreId(purchaseOrder.getStoreId());
-            // 设置一个默认预警阈值
-            inventory.setWarningThreshold(10);
-            inventory.setCreateBy(purchaseOrder.getCreateBy());
-            boolean a = this.save(inventory);
-            ThrowUtils.throwIf(!a,ErrorCode.SYSTEM_ERROR,"库存新增信息失败");
-        }
-        // 如果库存记录已存在，则更新数量不做任何处理
-    }
+    private final WarehouseService warehouseService;
 
     @Override
     public Page<InventoryVO> listInventoriesWithQuantity(InventoryQueryDTO queryDTO) {
@@ -109,27 +61,26 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         if (CollectionUtils.isEmpty(inventoryPage.getRecords())) {
             return new Page<>(current, size, 0);
         }
-        List<Long> productIds = inventoryPage.getRecords().stream()
-                .map(Inventory::getProductId)
+        List<Inventory> inventoryList = inventoryPage.getRecords();
+        List<String> productWarehouseKeys = inventoryList.stream()
+                .map(inv -> String.format("%d_%d", inv.getProductId(), inv.getWarehouseId()))
                 .distinct()
                 .toList();
+        // 查询库存明细：按「商品ID+仓库ID」过滤
         List<InventoryDetail> detailList = inventoryDetailService.list(
-                Wrappers.lambdaQuery(InventoryDetail.class)
-                        .in(InventoryDetail::getProductId, productIds)
+                Wrappers.query(InventoryDetail.class)
+                        // 核心：用 SQL CONCAT 函数拼接组合键，匹配 productWarehouseKeys
+                        .in("CONCAT(productId, '_', warehouseId)", productWarehouseKeys)
         );
         Map<String, Integer> quantityMap = calculateQuantityByProductStore(detailList);
-        List<InventoryVO> voList = inventoryPage.getRecords().stream()
+        List<InventoryVO> voList = inventoryList.stream()
                 .map(inventory -> {
                     InventoryVO vo = new InventoryVO(inventory);
-                    // 构建 key：仅使用 productId
-                    String key = String.valueOf(inventory.getProductId());
-                    // 填充数量
-                    vo.setQuantity(quantityMap.getOrDefault(key, null)); // 没有数量时默认为0
+                    String key = String.format("%d_%d", inventory.getProductId(), inventory.getWarehouseId());
+                    vo.setQuantity(quantityMap.getOrDefault(key, 0));
                     return vo;
                 })
-                .collect(Collectors.toList());
-
-        // 构建并返回VO分页对象
+                .toList();
         Page<InventoryVO> voPage = new Page<>();
         voPage.setRecords(voList);
         voPage.setTotal(inventoryPage.getTotal());
@@ -147,17 +98,18 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         if (inventory == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "库存记录不存在");
         }
-        // 仅根据 productId 查询所有相关的库存明细记录
+        Long productId = inventory.getProductId();
+        Long warehouseId = inventory.getWarehouseId(); // 关键：获取该库存记录对应的仓库ID
         LambdaQueryWrapper<InventoryDetail> detailQueryWrapper = Wrappers.lambdaQuery();
-        detailQueryWrapper.eq(InventoryDetail::getProductId, inventory.getProductId());
+        detailQueryWrapper.eq(InventoryDetail::getProductId, productId)
+                .eq(InventoryDetail::getWarehouseId, warehouseId); // 增加仓库ID筛选
         List<InventoryDetail> detailList = inventoryDetailService.list(detailQueryWrapper);
         // 计算库存数量
         Map<String, Integer> quantityMap = calculateQuantityByProductStore(detailList);
-        // 组装VO对象
+        // 组装VO对象：使用商品ID+仓库ID构建key，获取精准数量
         InventoryVO vo = new InventoryVO(inventory);
-        // 构建 key：仅使用 productId
-        String key = String.valueOf(inventory.getProductId());
-        vo.setQuantity(quantityMap.getOrDefault(key, 0)); // 没有数量时默认为0
+        String key = String.format("%d_%d", productId, warehouseId); // 二维度key
+        vo.setQuantity(quantityMap.getOrDefault(key, 0)); // 无数据时默认为0
         return vo;
     }
 
@@ -182,25 +134,93 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
         if (CollectionUtils.isEmpty(detailList)) {
             return Collections.emptyMap();
         }
-        // 分组计算：key = productId，value = 总数量
         return detailList.stream()
                 .collect(Collectors.groupingBy(
-                        detail -> String.valueOf(detail.getProductId()),
+                        // 分组key：商品ID_仓库ID
+                        detail -> String.format("%d_%d",
+                                detail.getProductId(), detail.getWarehouseId()),
                         Collectors.summingInt(detail -> {
                             Integer quantity = detail.getProductQuantity();
-                            switch (detail.getOrderType()) {
-                                case 0: // 采购：+数量
-                                    return quantity;
-                                case 1: // 采退：-数量
-                                    return -quantity;
-                                case 2: // 销售：-数量
-                                    return -quantity;
-                                case 3: // 销退：+数量
-                                    return quantity;
-                                default:
-                                    return 0;
-                            }
+                            return switch (detail.getOrderType()) {
+                                case 0 -> quantity;    // 采购：+数量
+                                case 1 -> -quantity;   // 采退：-数量
+                                case 2 -> -quantity;   // 销售：-数量
+                                case 3 -> quantity;    // 销退：+数量
+                                case 4 -> -quantity;   // 调拨转出：-数量（从源仓库减少）
+                                case 5 -> quantity;    // 调拨转入：+数量（向目标仓库增加）
+                                default -> 0;
+                            };
                         })
                 ));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void stockInNew(MultiWarehouseStockInDTO stockInDTO, HttpServletRequest request) {
+        Long purchaseOrderId = stockInDTO.getPurchaseOrderId();
+        List<MultiWarehouseStockInDTO.WarehouseStockInItem> items = stockInDTO.getItems();
+        // 查询采购订单并校验状态
+        PurchaseOrder purchaseOrder = purchaseOrderService.getById(purchaseOrderId);
+        if (purchaseOrder == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "采购订单不存在");
+        }
+        if (!purchaseOrder.getStatus().equals(PurchaseOrderStatusEnum.SHIPPED.getValue())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "只有已发货的订单才能进行入库操作");
+        }
+        // 校验入库总数量是否与采购订单数量一致
+        int totalStockInQuantity = items.stream()
+                .mapToInt(MultiWarehouseStockInDTO.WarehouseStockInItem::getQuantity)
+                .sum();
+        if (totalStockInQuantity != purchaseOrder.getProductQuantity()) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "各仓库入库数量之和必须等于采购订单总数量");
+        }
+        User loginUser = getLoginUserUtil.getLoginUser(request);
+        // 更新采购订单状态为“已入库”
+        purchaseOrder.setStatus(PurchaseOrderStatusEnum.STORED.getValue());
+        boolean isOrderUpdated = purchaseOrderService.updateById(purchaseOrder);
+        ThrowUtils.throwIf(!isOrderUpdated, ErrorCode.SYSTEM_ERROR, "更新采购订单状态失败");
+        // 遍历入库明细，为每个仓库执行入库操作
+        for (MultiWarehouseStockInDTO.WarehouseStockInItem item : items) {
+            Long warehouseId = item.getWarehouseId();
+            Integer quantity = item.getQuantity();
+            // 校验仓库是否存在
+            if (warehouseService.getById(warehouseId) == null) {
+                throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "仓库不存在，ID: " + warehouseId);
+            }
+            // 生成库存明细记录
+            InventoryDetail detail = new InventoryDetail();
+            detail.setProductId(purchaseOrder.getProductId());
+            detail.setOrderId(purchaseOrderId); // 注意：你的表结构中orderId是VARCHAR
+            detail.setType(InventoryDetailTypeEnum.TAKEIN.getValue());    // 入库
+            detail.setOrderType(OrderTypeEnum.PURCHASE.getValue());     // 采购订单
+            detail.setProductQuantity(quantity);
+            detail.setWarehouseId(warehouseId); // 设置仓库ID
+            detail.setCreateBy(loginUser.getId());
+            boolean isDetailSaved = inventoryDetailService.save(detail);
+            ThrowUtils.throwIf(!isDetailSaved, ErrorCode.SYSTEM_ERROR, "创建库存明细失败");
+            // 更新或创建库存记录
+            LambdaQueryWrapper<Inventory> queryWrapper = Wrappers.lambdaQuery();
+            queryWrapper.eq(Inventory::getProductId, purchaseOrder.getProductId())
+                    .eq(Inventory::getStoreId, purchaseOrder.getStoreId()) // 保留原有的门店维度
+                    .eq(Inventory::getWarehouseId, warehouseId); // 增加仓库维度
+            Inventory inventory = this.getOne(queryWrapper);
+            if (inventory == null) {
+                // 如果库存记录不存在，则创建
+                inventory = new Inventory();
+                inventory.setProductId(purchaseOrder.getProductId());
+                inventory.setProductName(purchaseOrder.getProductName());
+                inventory.setProductDescription(purchaseOrder.getProductDescription());
+                inventory.setProductUrl(purchaseOrder.getProductUrl());
+                // 出售价格默认比进货价多1
+                inventory.setProductPrice(purchaseOrder.getProductPrice().add(new BigDecimal(1)));
+                inventory.setStoreId(purchaseOrder.getStoreId());
+                inventory.setWarehouseId(warehouseId); // 设置仓库ID
+                inventory.setWarningThreshold(10); // 默认预警阈值
+                inventory.setCreateBy(loginUser.getId());
+                boolean isInventorySaved = this.save(inventory);
+                ThrowUtils.throwIf(!isInventorySaved, ErrorCode.SYSTEM_ERROR, "创建库存记录失败");
+            }
+            // 库存记录存在不做任何处理
+        }
     }
 }

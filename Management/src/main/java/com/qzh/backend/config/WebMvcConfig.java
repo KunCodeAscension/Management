@@ -20,7 +20,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry) {
         log.info("注册登录拦截器：{}", loginInterceptor != null ? "成功" : "失败（拦截器为null）");
         registry.addInterceptor(loginInterceptor)
-                .addPathPatterns("/api/system/**")
+                .addPathPatterns("/**")
                 .excludePathPatterns(
                         "/user/login",
                         "/user/register",

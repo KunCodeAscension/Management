@@ -63,6 +63,11 @@ public class AmountOrderDetailVO implements Serializable {
     private Long AmountOrderId;
 
     /**
+     * 采购或者采退的订单ID
+     */
+    private Long OrderId;
+
+    /**
      * 付款人ID 1
      */
     private Long payerId;

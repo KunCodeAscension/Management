@@ -1,6 +1,9 @@
 package com.qzh.backend.service.Impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.qzh.backend.exception.BusinessException;
@@ -39,23 +42,29 @@ public class InventoryDetailServiceImpl extends ServiceImpl<InventoryDetailMappe
         if (CollectionUtils.isEmpty(detailPage.getRecords())) {
             return new Page<>(detailPage.getCurrent(), detailPage.getSize(), detailPage.getTotal());
         }
-
-        // 提取所有的 productId，用于批量查询 Inventory 表
-        List<Long> productIds = detailPage.getRecords().stream()
-                .map(InventoryDetail::getProductId)
+        List<String> productWarehouseKeys = detailPage.getRecords().stream()
+                .map(detail -> String.format("%d_%d", detail.getProductId(), detail.getWarehouseId()))
                 .distinct()
-                .collect(Collectors.toList());
-        List<Inventory> inventoryList = inventoryMapper.selectBatchIds(productIds);
-        Map<Long, Inventory> inventoryMap = inventoryList.stream()
-                .collect(Collectors.toMap(Inventory::getProductId, inventory -> inventory));
-        // 将 InventoryDetail 列表转换为 InventoryDetailVO 列表
+                .toList();
+        QueryWrapper<Inventory> inventoryQueryWrapper = Wrappers.query(Inventory.class);
+        inventoryQueryWrapper.in("CONCAT(productId, '_', warehouseId)", productWarehouseKeys);
+        List<Inventory> inventoryList = inventoryMapper.selectList(inventoryQueryWrapper);
+        Map<String, Inventory> inventoryMap = inventoryList.stream()
+                .collect(Collectors.toMap(
+                        inv -> String.format("%d_%d", inv.getProductId(), inv.getWarehouseId()),
+                        inv -> inv,
+                        (oldVal, newVal) -> oldVal
+                ));
         List<InventoryDetailVO> voList = detailPage.getRecords().stream()
                 .map(detail -> {
                     InventoryDetailVO vo = new InventoryDetailVO();
                     BeanUtils.copyProperties(detail, vo);
-                    // 根据 productId 从 Map 中获取对应的 Inventory 对象
-                    Inventory inventory = inventoryMap.get(detail.getProductId());
-                    // 如果找到了对应的商品信息，则设置到 VO 中
+                    // 补充仓库ID
+                    vo.setWarehouseId(detail.getWarehouseId());
+                    // 构建「商品ID+仓库ID」key，精准匹配库存信息
+                    String key = String.format("%d_%d", detail.getProductId(), detail.getWarehouseId());
+                    Inventory inventory = inventoryMap.get(key);
+                    // 填充该商品在对应仓库的信息
                     if (inventory != null) {
                         vo.setProductName(inventory.getProductName());
                         vo.setProductDescription(inventory.getProductDescription());
@@ -91,8 +100,12 @@ public class InventoryDetailServiceImpl extends ServiceImpl<InventoryDetailMappe
     private InventoryDetailVO convertToVO(InventoryDetail detail) {
         InventoryDetailVO vo = new InventoryDetailVO();
         BeanUtils.copyProperties(detail, vo);
-        // 根据 productId 查询商品信息
-        Inventory inventory = inventoryMapper.selectById(detail.getProductId());
+        // 补充仓库ID
+        vo.setWarehouseId(detail.getWarehouseId());
+        LambdaQueryWrapper<Inventory> inventoryQueryWrapper = Wrappers.lambdaQuery();
+        inventoryQueryWrapper.eq(Inventory::getProductId, detail.getProductId())
+                .eq(Inventory::getWarehouseId, detail.getWarehouseId());
+        Inventory inventory = inventoryMapper.selectOne(inventoryQueryWrapper);
         if (inventory != null) {
             vo.setProductName(inventory.getProductName());
             vo.setProductDescription(inventory.getProductDescription());

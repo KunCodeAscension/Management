@@ -69,7 +69,7 @@ public class AmountOrderQueryDTO extends PageRequest implements Serializable {
         String endTime = dto.getEndTime();
         String sortField = dto.getSortField();
         String sortOrder = dto.getSortOrder();
-        queryWrapper.eq(ObjectUtil.isNotNull(storeId), "payer_id", storeId);
+        queryWrapper.eq(ObjectUtil.isNotNull(storeId), "storeId", storeId);
         queryWrapper.eq(ObjectUtil.isNotNull(type), "type", type);
         queryWrapper.eq(ObjectUtil.isNotNull(status), "status", status);
         queryWrapper.eq(ObjectUtil.isNotNull(payerId), "payerId", payerId);

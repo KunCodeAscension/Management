@@ -28,6 +28,7 @@ public class InventoryVO extends Inventory implements Serializable {
         this.setProductUrl(inventory.getProductUrl());
         this.setProductPrice(inventory.getProductPrice());
         this.setStoreId(inventory.getStoreId());
+        this.setWarehouseId(inventory.getWarehouseId());
         this.setWarningThreshold(inventory.getWarningThreshold());
         this.setCreateBy(inventory.getCreateBy());
         this.setCreateTime(inventory.getCreateTime());

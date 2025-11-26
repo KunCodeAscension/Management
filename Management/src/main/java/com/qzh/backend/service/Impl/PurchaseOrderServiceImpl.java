@@ -88,7 +88,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         amountOrder.setOrderId(purchaseOrder.getId());
         amountOrder.setType(OrderTypeEnum.PURCHASE.getValue()); // 0-采购
         amountOrder.setPayerId(loginUser.getId()); // 付款人设置为当前发起购买的用户
-        amountOrder.setPayeeId(product.getId());  // 收款人设置为产品供应商
+        amountOrder.setPayeeId(product.getSupplierId());  // 收款人设置为产品供应商
         amountOrder.setAmount(totalAmount);
         amountOrder.setStoreId(appGlobalConfig.getCurrentStoreId());  // 设置门店ID
         amountOrder.setStatus(PayStatusEnum.PENDING_PAYMENT.getValue()); // 0-待支付

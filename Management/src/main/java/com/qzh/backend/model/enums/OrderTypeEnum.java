@@ -24,7 +24,17 @@ public enum OrderTypeEnum {
     /**
      * 销退
      */
-    SALE_RETURN("销退", 3);
+    SALE_RETURN("销退", 3),
+
+    /**
+     * 调拨转出
+     */
+    TRANSFER_OUT("调拨转出", 4),
+
+    /**
+     * 调拨转入
+     */
+    TRANSFER_IN("调拨转入", 5);
 
     private final String text;
     private final int value;

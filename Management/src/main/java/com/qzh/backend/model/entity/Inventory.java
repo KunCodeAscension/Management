@@ -66,6 +66,11 @@ public class Inventory implements Serializable {
     private Integer warningThreshold;
 
     /**
+     * 仓库ID
+     */
+    private Long warehouseId;
+
+    /**
      * 创建人ID
      */
     private Long createBy;
