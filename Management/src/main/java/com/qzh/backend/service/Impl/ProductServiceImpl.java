@@ -58,7 +58,7 @@ public class ProductServiceImpl extends ServiceImpl<ProductMapper, Product> impl
         existingProduct.setName(productUpdateDTO.getName());
         existingProduct.setDescription(productUpdateDTO.getDescription());
         existingProduct.setUrl(productUpdateDTO.getUrl());
-        existingProduct.setPrice(productUpdateDTO.getPrice());
+//        existingProduct.setPrice(productUpdateDTO.getPrice());
         existingProduct.setStatus(productUpdateDTO.getStatus());
         return this.updateById(existingProduct);
     }

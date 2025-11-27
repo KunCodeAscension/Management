@@ -16,6 +16,7 @@ import com.qzh.backend.model.vo.AmountOrderDetailVO;
 import com.qzh.backend.service.AmountOrderService;
 import com.qzh.backend.service.PurchaseOrderService;
 import com.qzh.backend.service.PurchaseReturnService;
+import com.qzh.backend.service.SaleOrderService;
 import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.annotation.Resource;
@@ -37,6 +38,14 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
     private PurchaseOrderService purchaseOrderService;
 
     private final PurchaseReturnService purchaseReturnService;
+
+    @Resource
+    @Lazy
+    private SaleOrderService saleOrderService;
+
+    @Resource
+    @Lazy
+    private SaleReturnServiceImpl saleReturnService;
 
     @Override
     public Page<AmountOrder> listAmountOrdersByStoreId(AmountOrderQueryDTO queryDTO) {

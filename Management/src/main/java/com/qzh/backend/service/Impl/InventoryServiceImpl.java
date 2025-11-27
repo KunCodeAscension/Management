@@ -17,8 +17,10 @@ import com.qzh.backend.model.vo.InventoryVO;
 import com.qzh.backend.service.*;
 import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,11 +42,15 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
 
     private final WarehouseService warehouseService;
 
-    private final SaleOrderService saleOrderService;
+    @Resource
+    @Lazy
+    private SaleOrderService saleOrderService;
 
     private final AmountOrderService amountOrderService;
 
-    private final SaleReturnService saleReturnService;
+    @Resource
+    @Lazy
+    private SaleReturnService saleReturnService;
 
     @Override
     public Page<InventoryVO> listInventoriesWithQuantity(InventoryQueryDTO queryDTO) {
