@@ -59,7 +59,7 @@ public class PurchaseOrderServiceImpl extends ServiceImpl<PurchaseOrderMapper, P
         Product product = productService.getById(createDTO.getProductId());
         // 判断商品是否存在或者商品是否下架
         if (product == null || product.getStatus().equals(ProductStatusEnum.TAKEDOWN.getValue())) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品不存在: " + createDTO.getProductId());
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "商品不存在或已下架: " + createDTO.getProductId());
         }
         // 采购价格
         BigDecimal price = product.getPrice();

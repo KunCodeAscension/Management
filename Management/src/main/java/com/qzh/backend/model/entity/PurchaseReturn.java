@@ -45,11 +45,6 @@ public class PurchaseReturn implements Serializable {
     private String productUrl;
 
     /**
-     * 采购ID
-     */
-    private Long purchaseId;
-
-    /**
      * 仓库ID
      */
     private Long warehouseId;

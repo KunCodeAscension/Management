@@ -2,7 +2,6 @@ package com.qzh.backend.model.dto.product;
 
 import lombok.Data;
 import javax.validation.constraints.NotNull;
-import java.math.BigDecimal;
 
 @Data
 public class ProductUpdateDTO {
@@ -16,9 +15,6 @@ public class ProductUpdateDTO {
     private String description;
 
     private String url;
-
-    @NotNull(message = "售价不能为空")
-    private BigDecimal price;
 
     @NotNull(message = "商品状态不能为空")
     private Integer status;
