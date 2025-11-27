@@ -48,9 +48,22 @@ public class InventoryController {
         return ResultUtils.success(null);
     }
 
+
     @PostMapping("/stock-in")
     public BaseResponse<Void> stockIn(@Valid @RequestBody MultiWarehouseStockInDTO stockInDTO, HttpServletRequest request) {
         inventoryService.stockInNew(stockInDTO, request);
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("/sale-order")
+    public BaseResponse<Void>  saleOrder(@RequestBody Long saleOrderId,HttpServletRequest request) {
+        inventoryService.saleOrder(saleOrderId, request);
+        return ResultUtils.success(null);
+    }
+
+    @PostMapping("/sale-return/confirm")
+    public BaseResponse<Void> confirmSaleReturn(@RequestBody Long saleReturnId, HttpServletRequest request) {
+        inventoryService.confirmSaleReturn(saleReturnId, request);
         return ResultUtils.success(null);
     }
 

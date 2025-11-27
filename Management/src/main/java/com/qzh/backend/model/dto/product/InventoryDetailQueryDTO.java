@@ -42,12 +42,12 @@ public class InventoryDetailQueryDTO extends PageRequest implements Serializable
     /**
      * 开始时间 (创建时间 >= startTime)
      */
-    private String startTime;
+    private Date startTime;
 
     /**
      * 结束时间 (创建时间 <= endTime)
      */
-    private String endTime;
+    private Date endTime;
 
     public static QueryWrapper<InventoryDetail> getQueryWrapper(InventoryDetailQueryDTO dto) {
         QueryWrapper<InventoryDetail> queryWrapper = new QueryWrapper<>();
@@ -58,16 +58,16 @@ public class InventoryDetailQueryDTO extends PageRequest implements Serializable
         Long orderId = dto.getOrderId();
         Integer type = dto.getType();
         Integer orderType = dto.getOrderType();
-        String startTime = dto.getStartTime();
-        String endTime = dto.getEndTime();
+        Date startTime = dto.getStartTime();
+        Date endTime = dto.getEndTime();
         String sortField = dto.getSortField();
         String sortOrder = dto.getSortOrder();
         queryWrapper.eq(ObjectUtil.isNotNull(productId), "productId", productId);
         queryWrapper.eq(ObjectUtil.isNotNull(orderId), "orderId", orderId);
         queryWrapper.eq(ObjectUtil.isNotNull(orderType), "orderType", orderType);
         queryWrapper.eq(ObjectUtil.isNotNull(type), "type", type);
-        queryWrapper.ge(StrUtil.isNotBlank(startTime), "create_time", startTime);
-        queryWrapper.le(StrUtil.isNotBlank(endTime), "create_time", endTime);
+        queryWrapper.ge(ObjectUtil.isNotNull(startTime), "createTime", startTime);
+        queryWrapper.le(ObjectUtil.isNotNull(endTime), "createTime", endTime);
         queryWrapper.orderBy(StrUtil.isNotBlank(sortField), sortOrder.equals("ascend"), sortField);
         return queryWrapper;
     }

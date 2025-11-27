@@ -48,12 +48,12 @@ public class AmountOrderQueryDTO extends PageRequest implements Serializable {
     /**
      * 开始时间 (创建时间)
      */
-    private String startTime;
+    private Date startTime;
 
     /**
      * 结束时间 (创建时间)
      */
-    private String endTime;
+    private Date endTime;
 
     public static QueryWrapper<AmountOrder> getQueryWrapper(AmountOrderQueryDTO dto) {
         QueryWrapper<AmountOrder> queryWrapper = new QueryWrapper<>();
@@ -65,8 +65,8 @@ public class AmountOrderQueryDTO extends PageRequest implements Serializable {
         Long payeeId = dto.getPayeeId();
         Integer type = dto.getType();
         Integer status = dto.getStatus();
-        String startTime = dto.getStartTime();
-        String endTime = dto.getEndTime();
+        Date startTime = dto.getStartTime();
+        Date endTime = dto.getEndTime();
         String sortField = dto.getSortField();
         String sortOrder = dto.getSortOrder();
         queryWrapper.eq(ObjectUtil.isNotNull(storeId), "storeId", storeId);

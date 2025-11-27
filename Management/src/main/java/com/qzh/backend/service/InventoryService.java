@@ -18,4 +18,8 @@ public interface InventoryService extends IService<Inventory> {
     void updateInventory(InventoryUpdateDTO updateDTO);
 
     void stockInNew(MultiWarehouseStockInDTO stockInDTO, HttpServletRequest request);
+
+    void saleOrder(Long saleOrderId, HttpServletRequest request);
+
+    void confirmSaleReturn(Long saleReturnId, HttpServletRequest request);
 }

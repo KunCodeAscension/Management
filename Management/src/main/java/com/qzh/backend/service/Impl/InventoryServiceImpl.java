@@ -11,18 +11,10 @@ import com.qzh.backend.mapper.InventoryMapper;
 import com.qzh.backend.model.dto.product.InventoryQueryDTO;
 import com.qzh.backend.model.dto.product.InventoryUpdateDTO;
 import com.qzh.backend.model.dto.product.MultiWarehouseStockInDTO;
-import com.qzh.backend.model.entity.Inventory;
-import com.qzh.backend.model.entity.InventoryDetail;
-import com.qzh.backend.model.entity.PurchaseOrder;
-import com.qzh.backend.model.entity.User;
-import com.qzh.backend.model.enums.InventoryDetailTypeEnum;
-import com.qzh.backend.model.enums.OrderTypeEnum;
-import com.qzh.backend.model.enums.PurchaseOrderStatusEnum;
+import com.qzh.backend.model.entity.*;
+import com.qzh.backend.model.enums.*;
 import com.qzh.backend.model.vo.InventoryVO;
-import com.qzh.backend.service.InventoryDetailService;
-import com.qzh.backend.service.InventoryService;
-import com.qzh.backend.service.PurchaseOrderService;
-import com.qzh.backend.service.WarehouseService;
+import com.qzh.backend.service.*;
 import com.qzh.backend.utils.GetLoginUserUtil;
 import com.qzh.backend.utils.ThrowUtils;
 import jakarta.servlet.http.HttpServletRequest;
@@ -47,6 +39,12 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
     private final InventoryDetailService inventoryDetailService;
 
     private final WarehouseService warehouseService;
+
+    private final SaleOrderService saleOrderService;
+
+    private final AmountOrderService amountOrderService;
+
+    private final SaleReturnService saleReturnService;
 
     @Override
     public Page<InventoryVO> listInventoriesWithQuantity(InventoryQueryDTO queryDTO) {
@@ -221,6 +219,77 @@ public class InventoryServiceImpl extends ServiceImpl<InventoryMapper, Inventory
                 ThrowUtils.throwIf(!isInventorySaved, ErrorCode.SYSTEM_ERROR, "创建库存记录失败");
             }
             // 库存记录存在不做任何处理
+        }
+    }
+
+    @Override
+    @Transactional
+    public void saleOrder(Long saleOrderId, HttpServletRequest request) {
+        SaleOrder saleOrder = saleOrderService.getById(saleOrderId);
+        if (saleOrder == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "销售订单不存在");
+        }
+        if (!saleOrder.getStatus().equals(SaleOrderStatusEnum.PENDING.getValue())) { // 假设0=待发货，1=已发货，2=已完成
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "订单当前状态不支持发货操作");
+        }
+        AmountOrder amountOrder = amountOrderService.getOne(
+                new LambdaQueryWrapper<AmountOrder>()
+                        .eq(AmountOrder::getOrderId, saleOrderId)
+                        .eq(AmountOrder::getType, OrderTypeEnum.SALE.getValue()) // 2=销售订单类型
+        );
+        if (amountOrder == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "关联的金额订单不存在");
+        }
+        if (!amountOrder.getStatus().equals(PayStatusEnum.PAID.getValue())) { // 假设1=已支付，0=待支付
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户尚未支付，无法发货");
+        }
+        saleOrder.setStatus(SaleOrderStatusEnum.SHIPPED.getValue()); // 已发货
+        boolean updateSuccess = saleOrderService.updateById(saleOrder);
+        if (!updateSuccess) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新订单状态失败");
+        }
+        // 生成库存明细（标记为销售出库）
+        InventoryDetail inventoryDetail = new InventoryDetail();
+        inventoryDetail.setProductId(saleOrder.getProductId());
+        inventoryDetail.setProductQuantity(saleOrder.getProductQuantity());
+        inventoryDetail.setOrderId(saleOrderId);
+        inventoryDetail.setOrderType(OrderTypeEnum.SALE.getValue());
+        inventoryDetail.setType(InventoryDetailTypeEnum.TAKEOUT.getValue());
+        inventoryDetail.setWarehouseId(saleOrder.getWarehouseId());
+        inventoryDetail.setCreateBy(getLoginUserUtil.getLoginUser(request).getId()); // 操作人ID
+        boolean save = inventoryDetailService.save(inventoryDetail);
+        if (!save) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存明细表新增失败");
+        }
+    }
+
+    @Override
+    public void confirmSaleReturn(Long saleReturnId, HttpServletRequest request) {
+        // 查询销退订单详情
+        SaleReturn saleReturn = saleReturnService.getById(saleReturnId);
+        if (saleReturn == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "销退订单不存在");
+        }
+        if (!saleReturn.getStatus().equals(SaleReturnStatusEnum.UNFINISHED.getValue())) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "该销退订单已完成，无需重复操作");
+        }
+        saleReturn.setStatus(SaleReturnStatusEnum.COMPLETED.getValue());
+        boolean updateSuccess = saleReturnService.updateById(saleReturn);
+        if (!updateSuccess) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "更新销退订单状态失败");
+        }
+        // 生成库存明细（标记为销退入库）
+        InventoryDetail inventoryDetail = new InventoryDetail();
+        inventoryDetail.setProductId(saleReturn.getProductId());
+        inventoryDetail.setProductQuantity(saleReturn.getProductQuantity());
+        inventoryDetail.setOrderId(saleReturnId);
+        inventoryDetail.setOrderType(OrderTypeEnum.SALE_RETURN.getValue()); // 3-销退类型
+        inventoryDetail.setType(InventoryDetailTypeEnum.TAKEOUT.getValue()); // 0-入库（库存增加）
+        inventoryDetail.setWarehouseId(saleReturn.getWarehouseId()); // 退货入库仓库
+        inventoryDetail.setCreateBy(getLoginUserUtil.getLoginUser(request).getId()); // 操作人ID（商家）
+        boolean save = inventoryDetailService.save(inventoryDetail);
+        if (!save) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "库存明细表新增失败");
         }
     }
 }
