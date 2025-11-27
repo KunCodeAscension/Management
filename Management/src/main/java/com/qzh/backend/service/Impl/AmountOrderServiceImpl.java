@@ -7,10 +7,7 @@ import com.qzh.backend.exception.BusinessException;
 import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.mapper.AmountOrderMapper;
 import com.qzh.backend.model.dto.product.AmountOrderQueryDTO;
-import com.qzh.backend.model.entity.AmountOrder;
-import com.qzh.backend.model.entity.PurchaseOrder;
-import com.qzh.backend.model.entity.PurchaseReturn;
-import com.qzh.backend.model.entity.User;
+import com.qzh.backend.model.entity.*;
 import com.qzh.backend.model.enums.PayStatusEnum;
 import com.qzh.backend.model.vo.AmountOrderDetailVO;
 import com.qzh.backend.service.AmountOrderService;
@@ -133,10 +130,26 @@ public class AmountOrderServiceImpl extends ServiceImpl<AmountOrderMapper, Amoun
                 amountOrderDetailVO.setOrderId(orderId);
                 break;
             case 2:
-                // TODO
+                SaleOrder saleOrder = saleOrderService.getById(orderId);
+                amountOrderDetailVO.setProductId(saleOrder.getProductId());
+                amountOrderDetailVO.setProductName(saleOrder.getProductName());
+                amountOrderDetailVO.setProductDescription(saleOrder.getProductDescription());
+                amountOrderDetailVO.setProductPrice(saleOrder.getProductPrice());
+                amountOrderDetailVO.setProductQuantity(saleOrder.getProductQuantity());
+                amountOrderDetailVO.setProductUrl(saleOrder.getProductUrl());
+                amountOrderDetailVO.setPurchaseOrderStatus(saleOrder.getStatus());
+                amountOrderDetailVO.setOrderId(orderId);
                 break;
             case 3:
-                // TODO
+                SaleReturn saleReturn = saleReturnService.getById(orderId);
+                amountOrderDetailVO.setProductId(saleReturn.getProductId());
+                amountOrderDetailVO.setProductName(saleReturn.getProductName());
+                amountOrderDetailVO.setProductDescription(saleReturn.getProductDescription());
+                amountOrderDetailVO.setProductPrice(saleReturn.getProductPrice());
+                amountOrderDetailVO.setProductQuantity(saleReturn.getProductQuantity());
+                amountOrderDetailVO.setProductUrl(saleReturn.getProductUrl());
+                amountOrderDetailVO.setPurchaseOrderStatus(saleReturn.getStatus());
+                amountOrderDetailVO.setOrderId(orderId);
                 break;
             default:
                 ThrowUtils.throwIf(true, ErrorCode.PARAMS_ERROR, "未知的金额单类型：" + amountOrder.getType());
