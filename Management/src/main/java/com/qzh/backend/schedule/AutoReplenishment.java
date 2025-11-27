@@ -3,9 +3,11 @@ package com.qzh.backend.schedule;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.qzh.backend.exception.ErrorCode;
 import com.qzh.backend.model.entity.*;
 import com.qzh.backend.model.enums.*;
 import com.qzh.backend.service.*;
+import com.qzh.backend.utils.ThrowUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.framework.AopContext;
@@ -33,10 +35,12 @@ public class AutoReplenishment {
 
     private final AutoReplenishmentService autoReplenishmentService;
 
+    private final TransferLogService transferLogService;
+
     /**
      * 定时任务自动补货低于预警值的商品 每五分钟
      */
-    @Scheduled(cron = "0/20 * * * * *")
+    @Scheduled(cron = "* 0/10 * * * *")
     public void task() {
         log.info("开始执行自动补货任务（支持跨仓库调拨）...");
         // 查询所有仓库的库存记录（按商品ID+仓库ID分组）
@@ -121,10 +125,17 @@ public class AutoReplenishment {
             int transferableQty = source.getTransferableQty();
             int actualTransferQty = Math.min(transferableQty, neededQty - transferredQty);
             // 执行调拨操作
-            autoReplenishmentService.executeTransfer(productId, productName, source.getWarehouseId(), targetWarehouseId,
-                    actualTransferQty);
-            log.info("调拨成功：从仓库ID: {} 调拨商品: {} 数量: {} 到仓库ID: {}",
-                    source.getWarehouseId(), productName, actualTransferQty, targetWarehouseId);
+            Long orderId = autoReplenishmentService.executeTransfer(productId, productName, source.getWarehouseId(), targetWarehouseId, actualTransferQty);
+            TransferLog transferLog = new TransferLog();
+            transferLog.setProductId(productId);
+            transferLog.setTransferOrderId(orderId);
+            transferLog.setTransferQuantity(actualTransferQty);
+            transferLog.setSourceWarehouseId(source.getWarehouseId());
+            transferLog.setTransferOrderId(targetWarehouseId);
+            transferLog.setRemark("定时任务自动调拨");
+            boolean save = transferLogService.save(transferLog);
+            ThrowUtils.throwIf(!save, ErrorCode.SYSTEM_ERROR,"调拨日志记录异常");
+            log.info("调拨成功：从仓库ID: {} 调拨商品: {} 数量: {} 到仓库ID: {}", source.getWarehouseId(), productName, actualTransferQty, targetWarehouseId);
             transferredQty += actualTransferQty;
         }
         // 调拨后仍有缺口，创建采购订单补充剩余数量

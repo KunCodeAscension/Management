@@ -88,7 +88,7 @@ public class AutoReplenishmentService {
      * 执行跨仓库调拨操作（生成调拨转出/转入的库存明细）
      */
     @Transactional
-    public void executeTransfer(Long productId, String productName, Long sourceWarehouseId,
+    public Long executeTransfer(Long productId, String productName, Long sourceWarehouseId,
                                 Long targetWarehouseId, int transferQty) {
         Long operatorId = appGlobalConfig.getManagerId(); // 操作人：店长ID
         // 生成调拨订单ID
@@ -122,6 +122,7 @@ public class AutoReplenishmentService {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR,
                     String.format("仓库ID: %d 商品: %s 调拨转入明细创建失败", targetWarehouseId, productName));
         }
+        return transferOrderId;
     }
 
 
