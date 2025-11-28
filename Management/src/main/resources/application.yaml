@@ -19,6 +19,14 @@ spring:
       port: 6379
       timeout: 5000
       password: 123456
+    # springAI
+  ai:
+    openai:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode
+      api-key: sk-7a1fd5298eff41f590350ade6e642165
+      chat:
+        options:
+          model: qwen-plus
 
 mybatis-plus:
   configuration:

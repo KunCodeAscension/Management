@@ -40,7 +40,7 @@ public class AutoReplenishment {
     /**
      * 定时任务自动补货低于预警值的商品 每五分钟
      */
-    @Scheduled(cron = "* 0/10 * * * *")
+    @Scheduled(cron = "0 0/10 * * * *")
     public void task() {
         log.info("开始执行自动补货任务（支持跨仓库调拨）...");
         // 查询所有仓库的库存记录（按商品ID+仓库ID分组）
